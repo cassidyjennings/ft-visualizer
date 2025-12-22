@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fourier Transform Visualizer
+
+An interactive web application for building intuition about **Fourier transforms** by drawing grayscale images and exploring their frequency-domain representations.
+
+Users can draw images pixel-by-pixel, view the **magnitude** and **phase** of the 2D Fourier transform, and experiment with inverse transforms to see how changes in frequency affect the reconstructed image.
+
+The project is designed as an **educational tool** for learning signal processing and image analysis.
+
+---
+
+## Features (Planned & In Progress)
+
+- Draw grayscale images on a pixel grid  
+  - Choose image dimensions (powers of two)
+  - Click or drag to draw
+  - Adjustable grayscale values
+- Visualize the 2D Fourier Transform  
+  - Log-scaled magnitude spectrum
+  - Phase spectrum
+  - Centered (fftshifted) view
+- Inverse Fourier Transform  
+  - Reconstruct images from magnitude and phase
+  - Explore magnitude-only and phase-only reconstructions
+
+
+---
+
+## Motivation
+
+Fourier transforms are often taught abstractly, but intuition comes from interaction.
+
+This tool lets users *draw → transform → reconstruct*, helping answer questions like:
+- What does an edge or pattern look like in the frequency domain?
+- Why is phase so important for structure?
+- How do specific frequencies affect an image?
+
+
+---
+
+## Tech Stack
+
+- Next.js (App Router)
+- React + TypeScript
+- HTML Canvas
+- Web Workers (planned)
+- Tailwind CSS
+- Vercel for deployment
+
+
+---
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Open http://localhost:3000 in your browser.
+
+
+---
+
+## Conventions
+
+Mathematical and implementation conventions (image format, FFT normalization, visualization choices) are documented in:
+```bash
+docs/conventions.md
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## License
 
-## Learn More
+MIT License
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
