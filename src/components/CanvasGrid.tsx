@@ -20,19 +20,40 @@ export interface CanvasGridHandle {
 interface CanvasGridProps {
   width: number;
   height: number;
-  pixelSize?: number;
   brush: BrushSettings;
   maxUndo?: number;
   showGrid?: boolean;
+  initialDisplaySize?: number; // px, e.g. 512
+  minDisplaySize?: number; // px, e.g. 160
 }
 
 export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid(
-  { width, height, pixelSize = 8, brush, maxUndo = 50, showGrid = true },
+  {
+    width,
+    height,
+    brush,
+    maxUndo = 50,
+    showGrid = true,
+    initialDisplaySize = 512,
+    minDisplaySize,
+  },
   ref,
 ) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [displaySize, setDisplaySize] = useState<number>(initialDisplaySize ?? 512);
+  const resizingRef = useRef(false);
+
+  // Pixel size computed from display size
+  const pixelSize = useMemo(() => {
+    // ensure at least 1px per pixel
+    return Math.max(1, Math.floor(displaySize / width));
+  }, [displaySize, width]);
+
+  const canvasW = useMemo(() => width * pixelSize, [width, pixelSize]);
+  const canvasH = useMemo(() => height * pixelSize, [height, pixelSize]);
+
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
-
   const imageRef = useRef<ImageModel>(createEmptyImage(width, height, 0));
 
   // Undo history stores snapshots of image.data
@@ -46,9 +67,6 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
   const strokeStartRef = useRef<{ x: number; y: number } | null>(null);
   const strokeBaseSnapshotRef = useRef<Uint8Array | null>(null);
-
-  const canvasW = useMemo(() => width * pixelSize, [width, pixelSize]);
-  const canvasH = useMemo(() => height * pixelSize, [height, pixelSize]);
 
   function pushHistorySnapshot(snapshot: Uint8Array) {
     // Drop redo states if any
@@ -103,6 +121,42 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
     redrawOverlay();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width, height]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const ro = new ResizeObserver(() => {
+      if (resizingRef.current) return;
+      resizingRef.current = true;
+
+      try {
+        const rect = el.getBoundingClientRect();
+        const w = Math.floor(rect.width);
+        if (!Number.isFinite(w) || w <= 0) return;
+
+        // Set height to equal width
+        el.style.height = `${w}px`;
+
+        // Use width as the displaySize
+        setDisplaySize(w);
+      } finally {
+        // next frame to avoid feedback loops
+        requestAnimationFrame(() => {
+          resizingRef.current = false;
+        });
+      }
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    redrawBase();
+    redrawOverlay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pixelSize, showGrid, brush.radius, brush.shape]);
 
   function redrawBase() {
     const canvas = baseCanvasRef.current;
@@ -282,18 +336,36 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
   }
 
   return (
-    <div className="relative inline-block">
+    <div
+      ref={containerRef}
+      className="relative inline-block border"
+      style={{
+        width: initialDisplaySize ?? 512,
+        height: initialDisplaySize ?? 512,
+        resize: "horizontal",
+        overflow: "hidden",
+        minWidth: minDisplaySize ?? 160,
+        minHeight: minDisplaySize ?? 160,
+      }}
+    >
+      <div className="absolute right-2 top-2 rounded bg-white/80 px-2 py-1 text-xs">
+        {width}×{height} • pixelSize={pixelSize}px
+      </div>
+
       <canvas
         ref={baseCanvasRef}
         width={canvasW}
         height={canvasH}
-        className="border cursor-crosshair select-none block"
+        className="absolute left-0 top-0 block select-none"
+        style={{ imageRendering: "pixelated" }}
       />
+
       <canvas
         ref={overlayCanvasRef}
         width={canvasW}
         height={canvasH}
-        className="absolute left-0 top-0 pointer-events-auto cursor-crosshair select-none"
+        className="absolute left-0 top-0 cursor-crosshair select-none"
+        style={{ imageRendering: "pixelated" }}
         onMouseDown={(e) => {
           setHoverPos(eventToPixel(e));
           beginStroke(e);
@@ -310,110 +382,3 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
     </div>
   );
 });
-
-// export default function CanvasGrid({
-//   width,
-//   height,
-//   pixelSize = 8,
-//   brush,
-// }: CanvasGridProps) {
-//   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-//   const imageRef = useRef<ImageModel>(createEmptyImage(width, height, 0));
-//   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
-
-//   const [isDrawing, setIsDrawing] = useState(false);
-
-//   // Reset image when size changes
-//   useEffect(() => {
-//     imageRef.current = createEmptyImage(width, height, 0);
-//     const canvas = canvasRef.current;
-//     if (!canvas) return;
-
-//     const ctx = canvas.getContext("2d");
-//     if (!ctx) return;
-
-//     ctx.clearRect(0, 0, canvas.width, canvas.height);
-//   }, [width, height]);
-
-//   function redraw() {
-//     const canvas = canvasRef.current;
-//     if (!canvas) return;
-
-//     const ctx = canvas.getContext("2d");
-//     if (!ctx) return;
-
-//     const { data } = imageRef.current;
-
-//     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-//     for (let y = 0; y < height; y++) {
-//       for (let x = 0; x < width; x++) {
-//         const v = data[y * width + x];
-//         ctx.fillStyle = `rgb(${v}, ${v}, ${v})`;
-//         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
-//       }
-//     }
-
-//     // grid overlay
-//     ctx.strokeStyle = "rgba(0,0,0,0.1)";
-//     for (let x = 0; x <= width; x++) {
-//       ctx.beginPath();
-//       ctx.moveTo(x * pixelSize, 0);
-//       ctx.lineTo(x * pixelSize, height * pixelSize);
-//       ctx.stroke();
-//     }
-//     for (let y = 0; y <= height; y++) {
-//       ctx.beginPath();
-//       ctx.moveTo(0, y * pixelSize);
-//       ctx.lineTo(width * pixelSize, y * pixelSize);
-//       ctx.stroke();
-//     }
-//   }
-
-//   function eventToPixel(e: React.MouseEvent<HTMLCanvasElement>) {
-//     const rect = e.currentTarget.getBoundingClientRect();
-//     const x = Math.floor((e.clientX - rect.left) / pixelSize);
-//     const y = Math.floor((e.clientY - rect.top) / pixelSize);
-//     return { x, y };
-//   }
-
-//   function paintAt(e: React.MouseEvent<HTMLCanvasElement>) {
-//     const { x, y } = eventToPixel(e);
-//     const last = lastPosRef.current;
-
-//     if (last) {
-//       strokeLine(imageRef.current, last.x, last.y, x, y, brush);
-//     } else {
-//       strokeLine(imageRef.current, x, y, x, y, brush);
-//     }
-
-//     lastPosRef.current = { x, y };
-//     redraw();
-//   }
-
-//   return (
-//     <canvas
-//       ref={canvasRef}
-//       width={width * pixelSize}
-//       height={height * pixelSize}
-//       className="border cursor-crosshair select-none"
-//       onMouseDown={(e) => {
-//         setIsDrawing(true);
-//         lastPosRef.current = null;
-//         paintAt(e);
-//       }}
-//       onMouseMove={(e) => {
-//         if (!isDrawing) return;
-//         paintAt(e);
-//       }}
-//       onMouseUp={() => {
-//         setIsDrawing(false);
-//         lastPosRef.current = null;
-//       }}
-//       onMouseLeave={() => {
-//         setIsDrawing(false);
-//         lastPosRef.current = null;
-//       }}
-//     />
-//   );
-// }
