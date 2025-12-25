@@ -1,7 +1,9 @@
 # Fourier Transform Visualizer – Conventions
 
 ## Image Sizes
+
 Allowed sizes (initial):
+
 - 32 × 32
 - 64 × 64
 - 128 × 128
@@ -10,20 +12,24 @@ Allowed sizes (initial):
 (Powers of two only for FFT simplicity and performance.)
 
 ## Image Representation
+
 - Grayscale image
 - Stored as `Uint8Array`
 - Length = `width * height`
 - Values in range `[0, 255]`
 
 ## FFT Representation
+
 - Real and imaginary parts stored separately
 - Type: `Float32Array`
 - Same shape as image
 
 ## Visualization Defaults
+
 - Magnitude displayed as: log(1 + sqrt(re^2 + im^2))
 - Spectrum is **shifted by default** (DC centered)
 
 ## Normalization
-- Forward FFT: unnormalized
-- Inverse FFT: divide by `width * height`
+
+- Forward FFT: divide by `width * height`
+- Inverse FFT: unnormalized

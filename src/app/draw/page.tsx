@@ -36,86 +36,6 @@ export default function DrawPage() {
     <main className="p-8 space-y-6">
       <h1 className="text-2xl font-semibold">Draw</h1>
 
-      {/* <div className="flex gap-6 items-center">
-        <label className="flex items-center gap-2">
-          Size
-          <select
-            value={size}
-            onChange={(e) => setSize(Number(e.target.value))}
-            className="border p-1"
-          >
-            {[2, 4, 8, 16, 32, 64, 128, 256].map((s) => (
-              <option key={s} value={s}>
-                {s} × {s}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex items-center gap-2">
-          Grayscale
-          <input
-            type="range"
-            min={0}
-            max={255}
-            value={value}
-            onChange={(e) => setValue(Number(e.target.value))}
-          />
-          <span>{value}</span>
-        </label>
-
-        <label className="flex items-center gap-2">
-          Radius
-          <input
-            type="range"
-            min={0}
-            max={10}
-            value={radius}
-            onChange={(e) => setRadius(Number(e.target.value))}
-          />
-          <span>{radius}</span>
-        </label>
-
-        <label className="flex items-center gap-2">
-          Mode
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value as BrushMode)}
-            className="border p-1"
-          >
-            <option value="draw">Draw</option>
-            <option value="erase">Erase</option>
-          </select>
-        </label>
-
-        <select
-          value={shape}
-          onChange={(e) => setShape(e.target.value as BrushShape)}
-          className="border p-1"
-        >
-          <option value="circle">Circle</option>
-          <option value="square">Square</option>
-          <option value="diamond">Diamond</option>
-          <option value="cross">Cross</option>
-          <option value="hline">Horizontal line</option>
-          <option value="vline">Vertical line</option>
-        </select>
-
-        <button
-          className="border px-3 py-1 rounded"
-          onClick={() => canvasRef.current?.undo()}
-        >
-          Undo
-        </button>
-
-        <button
-          className="border px-3 py-1 rounded"
-          onClick={() => canvasRef.current?.clear()}
-        >
-          Clear
-        </button>
-      </div> */}
-
       <CanvasGrid
         ref={canvasRef}
         width={size}
@@ -128,7 +48,7 @@ export default function DrawPage() {
       />
 
       {/* Controls UNDER canvas, left-half only */}
-      <div className="mt-6 w-full md:w-1/2 max-w-[520px]">
+      <div className="mt-6 w-full md:w-1/2 max-w-130">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:items-start">
           {/* Left column: Size + Undo/Clear */}
           <div className="space-y-3">
@@ -215,8 +135,8 @@ export default function DrawPage() {
                 onChange={(e) => setShape(e.target.value as BrushShape)}
                 className="border rounded p-2"
               >
-                <option value="circle">Circle</option>
                 <option value="square">Square</option>
+                <option value="circle">Circle</option>
                 <option value="diamond">Diamond</option>
                 <option value="cross">Cross</option>
                 <option value="hline">Horizontal line</option>

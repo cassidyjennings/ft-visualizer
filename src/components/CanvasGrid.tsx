@@ -15,6 +15,7 @@ export interface CanvasGridHandle {
   undo: () => void;
   clear: () => void;
   getImage: () => ImageModel;
+  getImageData: () => Uint8Array;
 }
 
 interface CanvasGridProps {
@@ -111,6 +112,7 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
     undo,
     clear,
     getImage: () => imageRef.current,
+    getImageData: () => imageRef.current.data.slice(),
   }));
 
   // Reset image & history when size changes
