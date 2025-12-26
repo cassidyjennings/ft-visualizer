@@ -5,8 +5,7 @@ import CanvasGrid, { CanvasGridHandle } from "@/components/CanvasGrid";
 import { makeFFTWorker } from "@/lib/workers/fftWorkerClient";
 import type { FFTRequest, FFTResponse } from "@/lib/workers/fft.worker";
 import type { BrushMode, BrushShape, BrushSettings } from "@/lib/image/brush";
-
-type MagScale = "linear" | "log";
+import { useSettings } from "@/lib/settings/SettingsContext";
 
 type FFTState = {
   width: number;
@@ -43,18 +42,15 @@ export default function DrawPage() {
   );
 
   // FFT display options
-  const [shift, setShift] = useState(true);
-  const [magScale, setMagScale] = useState<MagScale>("linear");
+  const { settings } = useSettings();
 
   // FFT outputs
-  // const [fftReal, setFftReal] = useState<Float32Array | null>(null);
-  // const [fftImag, setFftImag] = useState<Float32Array | null>(null);
   const [fft, setFft] = useState<FFTState>(null);
 
   // "busy" UI
   const [isTransforming, setIsTransforming] = useState(false);
 
-  // Init worker once
+  // Initialize worker on first render
   useEffect(() => {
     const w = makeFFTWorker();
     workerRef.current = w;
@@ -80,9 +76,16 @@ export default function DrawPage() {
     if (!fft) return;
     if (fft.width !== size || fft.height !== size) return; // ignore stale FFT
 
-    drawMagnitude(magCanvasRef.current, fft.real, fft.imag, size, size, magScale);
+    drawMagnitude(
+      magCanvasRef.current,
+      fft.real,
+      fft.imag,
+      size,
+      size,
+      settings.magScale,
+    );
     drawPhase(phaseCanvasRef.current, fft.real, fft.imag, size, size);
-  }, [fft, size, magScale]);
+  }, [fft, size, settings.magScale]);
 
   function handleTransform() {
     const w = workerRef.current;
@@ -97,7 +100,8 @@ export default function DrawPage() {
       width: size,
       height: size,
       pixels,
-      shift,
+      shift: settings.shift === "shifted",
+      normalization: settings.normalization,
     };
 
     // Transfer pixels buffer to worker for speed
@@ -249,7 +253,7 @@ export default function DrawPage() {
           {/* Two equal canvases */}
           <div className="grid grid-cols-2 gap-4">
             <div className="min-w-0">
-              <div className="mb-2 font-medium">Magnitude ({magScale})</div>
+              <div className="mb-2 font-medium">Magnitude ({settings.magScale})</div>
               <canvas
                 ref={magCanvasRef}
                 width={size}
@@ -270,10 +274,9 @@ export default function DrawPage() {
               />
             </div>
           </div>
-
-          {/* DFT display controls under both */}
+          DFT display controls under both
           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
-            <label className="flex items-center gap-2">
+            {/* <label className="flex items-center gap-2">
               Shift
               <input
                 type="checkbox"
@@ -292,7 +295,7 @@ export default function DrawPage() {
                 <option value="linear">Linear</option>
                 <option value="log">Log</option>
               </select>
-            </label>
+            </label> */}
 
             {!fft && (
               <span className="text-gray-600">

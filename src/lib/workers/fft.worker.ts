@@ -2,12 +2,14 @@
 
 import { fft2dInPlace } from "../fft/fft2d";
 import { fftshift2dInPlace } from "../fft/shift";
+import type { FFTNormalization } from "@/lib/fft/types";
 
 export type FFTRequest = {
   width: number;
   height: number;
   pixels: Uint8Array; // grayscale 0..255
   shift: boolean;
+  normalization: FFTNormalization;
 };
 
 export type FFTResponse = {
@@ -18,9 +20,12 @@ export type FFTResponse = {
 };
 
 self.onmessage = (e: MessageEvent<FFTRequest>) => {
-  const { width, height, pixels, shift } = e.data;
+  const { width, height, pixels, shift, normalization } = e.data;
 
   const n = width * height;
+  if (pixels.length !== n) {
+    throw new Error(`pixels length mismatch: got ${pixels.length}, expected ${n}`);
+  }
   const real = new Float32Array(n);
   const imag = new Float32Array(n);
 
@@ -30,7 +35,8 @@ self.onmessage = (e: MessageEvent<FFTRequest>) => {
     imag[i] = 0;
   }
 
-  fft2dInPlace(real, imag, width, height, 1);
+  // Forward FFT
+  fft2dInPlace(real, imag, width, height, 1, normalization);
 
   if (shift) {
     fftshift2dInPlace(real, imag, width, height);

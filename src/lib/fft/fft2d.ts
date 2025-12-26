@@ -1,4 +1,5 @@
 import { fft1dInPlace } from "./fft1d";
+import type { FFTNormalization } from "./types";
 
 /**
  * In-place 2D FFT on (width x height) stored row-major in real/imag.
@@ -14,6 +15,7 @@ export function fft2dInPlace(
   width: number,
   height: number,
   dir: 1 | -1,
+  normalization: FFTNormalization,
 ): void {
   if (real.length !== width * height || imag.length !== width * height) {
     throw new Error("Array size mismatch");
@@ -61,9 +63,29 @@ export function fft2dInPlace(
     }
   }
 
-  // Normalize on forward
-  if (dir === 1) {
-    const scale = 1 / (width * height);
+  // Apply normalization exactly once (using total N = width*height)
+  const totalN = width * height;
+
+  let scale = 1;
+  switch (normalization) {
+    case "none":
+      scale = 1;
+      break;
+    case "forward":
+      scale = dir === 1 ? 1 / totalN : 1;
+      break;
+    case "inverse":
+      scale = dir === -1 ? 1 / totalN : 1;
+      break;
+    case "unitary":
+      scale = 1 / Math.sqrt(totalN);
+      break;
+    default: {
+      const _exhaustive: never = normalization;
+      return _exhaustive;
+    }
+  }
+  if (scale !== 1) {
     for (let i = 0; i < real.length; i++) {
       real[i] *= scale;
       imag[i] *= scale;

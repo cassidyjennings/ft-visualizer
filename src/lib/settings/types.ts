@@ -1,0 +1,11 @@
+export type CenterConvention = "centerPixel" | "centerBetween" | "topLeft";
+export type ShiftConvention = "shifted" | "unshifted";
+export type MagScale = "linear" | "log";
+export type FFTNormalization = "none" | "forward" | "inverse" | "unitary";
+
+export type Settings = {
+  center: CenterConvention;
+  shift: ShiftConvention;
+  magScale: MagScale;
+  normalization: FFTNormalization;
+};
