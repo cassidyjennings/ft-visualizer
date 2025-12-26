@@ -8,6 +8,13 @@ import type { BrushMode, BrushShape, BrushSettings } from "@/lib/image/brush";
 
 type MagScale = "linear" | "log";
 
+type FFTState = {
+  width: number;
+  height: number;
+  real: Float32Array;
+  imag: Float32Array;
+} | null;
+
 function clamp01(x: number) {
   return Math.max(0, Math.min(1, x));
 }
@@ -40,8 +47,9 @@ export default function DrawPage() {
   const [magScale, setMagScale] = useState<MagScale>("linear");
 
   // FFT outputs
-  const [fftReal, setFftReal] = useState<Float32Array | null>(null);
-  const [fftImag, setFftImag] = useState<Float32Array | null>(null);
+  // const [fftReal, setFftReal] = useState<Float32Array | null>(null);
+  // const [fftImag, setFftImag] = useState<Float32Array | null>(null);
+  const [fft, setFft] = useState<FFTState>(null);
 
   // "busy" UI
   const [isTransforming, setIsTransforming] = useState(false);
@@ -52,8 +60,12 @@ export default function DrawPage() {
     workerRef.current = w;
 
     w.onmessage = (e: MessageEvent<FFTResponse>) => {
-      setFftReal(e.data.real);
-      setFftImag(e.data.imag);
+      setFft({
+        width: e.data.width,
+        height: e.data.height,
+        real: e.data.real,
+        imag: e.data.imag,
+      });
       setIsTransforming(false);
     };
 
@@ -65,16 +77,12 @@ export default function DrawPage() {
 
   // Draw spectrum whenever FFT output or display options change
   useEffect(() => {
-    if (!fftReal || !fftImag) return;
-    drawMagnitude(magCanvasRef.current, fftReal, fftImag, size, size, magScale);
-    drawPhase(phaseCanvasRef.current, fftReal, fftImag, size, size);
-  }, [fftReal, fftImag, size, magScale]);
+    if (!fft) return;
+    if (fft.width !== size || fft.height !== size) return; // ignore stale FFT
 
-  // If size changes, clear old FFT (avoids mismatched canvas dimensions)
-  useEffect(() => {
-    setFftReal(null);
-    setFftImag(null);
-  }, [size]);
+    drawMagnitude(magCanvasRef.current, fft.real, fft.imag, size, size, magScale);
+    drawPhase(phaseCanvasRef.current, fft.real, fft.imag, size, size);
+  }, [fft, size, magScale]);
 
   function handleTransform() {
     const w = workerRef.current;
@@ -124,7 +132,7 @@ export default function DrawPage() {
           />
 
           {/* Drawing controls (stacked under canvas) */}
-          <div className="mt-6 max-w-[560px]">
+          <div className="mt-6 max-w-140">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:items-start">
               {/* Size + Undo/Clear */}
               <div className="space-y-3">
@@ -286,7 +294,7 @@ export default function DrawPage() {
               </select>
             </label>
 
-            {!fftReal && (
+            {!fft && (
               <span className="text-gray-600">
                 Click <span className="font-medium">Transform →</span> to compute the DFT.
               </span>
@@ -349,14 +357,34 @@ function drawPhase(
 
   const img = ctx.createImageData(width, height);
 
-  for (let i = 0; i < width * height; i++) {
-    const ph = Math.atan2(imag[i], real[i]); // [-pi, pi]
-    const g = Math.floor(((ph + Math.PI) / (2 * Math.PI)) * 255);
-    const j = i * 4;
-    img.data[j + 0] = g;
-    img.data[j + 1] = g;
-    img.data[j + 2] = g;
-    img.data[j + 3] = 255;
+  for (let pix_i = 0; pix_i < width * height; pix_i++) {
+    const phi = Math.atan2(imag[pix_i], real[pix_i]); // [-pi, pi]
+    const t = Math.abs(phi) / Math.PI; // [0, 1]
+
+    let r = 0;
+    let g = 0;
+    let b = 0;
+
+    if (phi > 0) {
+      // Positive phase -> red
+      r = Math.round(255 * t);
+    } else if (phi < 0) {
+      b = Math.round(255 * t);
+    }
+
+    // White at pi and -pi
+    if (t > 0.999) {
+      r = 255;
+      g = 255;
+      b = 255;
+    }
+
+    // Each pixel has 4 consecutive entries in img.data
+    const pix_start = pix_i * 4;
+    img.data[pix_start + 0] = r; // R entry
+    img.data[pix_start + 1] = g; // G entry
+    img.data[pix_start + 2] = b; // B entry
+    img.data[pix_start + 3] = 255; // A entry
   }
 
   ctx.putImageData(img, 0, 0);
