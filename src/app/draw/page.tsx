@@ -21,6 +21,7 @@ function clamp01(x: number) {
 export default function DrawPage() {
   // Canvas ref
   const canvasRef = useRef<CanvasGridHandle | null>(null);
+  const [showGrid, setShowGrid] = useState(true);
 
   // Worker
   const workerRef = useRef<Worker | null>(null);
@@ -35,7 +36,6 @@ export default function DrawPage() {
   const [radius, setRadius] = useState(0);
   const [mode, setMode] = useState<BrushMode>("draw");
   const [shape, setShape] = useState<BrushShape>("square");
-
   const brush: BrushSettings = useMemo(
     () => ({ value, radius, mode, shape }),
     [value, radius, mode, shape],
@@ -102,6 +102,7 @@ export default function DrawPage() {
       pixels,
       shift: settings.shift === "shifted",
       normalization: settings.normalization,
+      center: settings.center,
     };
 
     // Transfer pixels buffer to worker for speed
@@ -131,6 +132,7 @@ export default function DrawPage() {
             width={size}
             height={size}
             brush={brush}
+            showGrid={showGrid}
             initialDisplaySize={512}
             minDisplaySize={160}
           />
@@ -168,6 +170,14 @@ export default function DrawPage() {
                   >
                     Clear
                   </button>
+                  <label className="flex items-center gap-2 select-none">
+                    <input
+                      type="checkbox"
+                      checked={showGrid}
+                      onChange={(e) => setShowGrid(e.target.checked)}
+                    />
+                    <span className="text-sm font-medium">Show grid</span>
+                  </label>
                 </div>
               </div>
 
@@ -274,29 +284,7 @@ export default function DrawPage() {
               />
             </div>
           </div>
-          DFT display controls under both
           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
-            {/* <label className="flex items-center gap-2">
-              Shift
-              <input
-                type="checkbox"
-                checked={shift}
-                onChange={(e) => setShift(e.target.checked)}
-              />
-            </label>
-
-            <label className="flex items-center gap-2">
-              Magnitude
-              <select
-                className="border p-1"
-                value={magScale}
-                onChange={(e) => setMagScale(e.target.value as MagScale)}
-              >
-                <option value="linear">Linear</option>
-                <option value="log">Log</option>
-              </select>
-            </label> */}
-
             {!fft && (
               <span className="text-gray-600">
                 Click <span className="font-medium">Transform →</span> to compute the DFT.

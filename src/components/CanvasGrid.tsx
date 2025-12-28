@@ -179,19 +179,47 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
     }
 
     if (showGrid) {
-      ctx.strokeStyle = "rgba(0,0,0,0.1)";
+      ctx.save();
+
+      // Thin grid lines (visible on dark background)
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 1;
+
+      // Draw thin grid (use 0.5 offset for crisp 1px lines)
       for (let x = 0; x <= width; x++) {
+        const px = x * pixelSize + 0.5;
         ctx.beginPath();
-        ctx.moveTo(x * pixelSize, 0);
-        ctx.lineTo(x * pixelSize, height * pixelSize);
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, height * pixelSize);
         ctx.stroke();
       }
+
       for (let y = 0; y <= height; y++) {
+        const py = y * pixelSize + 0.5;
         ctx.beginPath();
-        ctx.moveTo(0, y * pixelSize);
-        ctx.lineTo(width * pixelSize, y * pixelSize);
+        ctx.moveTo(0, py);
+        ctx.lineTo(width * pixelSize, py);
         ctx.stroke();
       }
+
+      // Bold center lines
+      ctx.strokeStyle = "rgba(255,255,255,0.45)";
+      ctx.lineWidth = 2;
+
+      const cx = (width / 2) * pixelSize + 0.5;
+      const cy = (height / 2) * pixelSize + 0.5;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, 0);
+      ctx.lineTo(cx, height * pixelSize);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, cy);
+      ctx.lineTo(width * pixelSize, cy);
+      ctx.stroke();
+
+      ctx.restore();
     }
   }
 
