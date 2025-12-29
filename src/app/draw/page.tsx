@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import CanvasGrid, { CanvasGridHandle } from "@/components/CanvasGrid";
+import CanvasGridControls from "@/components/CanvasGridControls";
 import { makeFFTWorker } from "@/lib/workers/fftWorkerClient";
 import type { FFTRequest, FFTResponse } from "@/lib/workers/fft.worker";
-import type { BrushMode, BrushShape, BrushSettings } from "@/lib/image/brush";
+import type { BrushSettings } from "@/lib/image/brush";
 import { useSettings } from "@/lib/settings/SettingsContext";
 
 type FFTState = {
@@ -21,7 +22,6 @@ function clamp01(x: number) {
 export default function DrawPage() {
   // Canvas ref
   const canvasRef = useRef<CanvasGridHandle | null>(null);
-  const [showGrid, setShowGrid] = useState(true);
 
   // Worker
   const workerRef = useRef<Worker | null>(null);
@@ -30,16 +30,15 @@ export default function DrawPage() {
   const magCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const phaseCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Size + brush controls
+  // Display controls
   const [size, setSize] = useState(64);
-  const [value, setValue] = useState(255);
-  const [radius, setRadius] = useState(0);
-  const [mode, setMode] = useState<BrushMode>("draw");
-  const [shape, setShape] = useState<BrushShape>("square");
-  const brush: BrushSettings = useMemo(
-    () => ({ value, radius, mode, shape }),
-    [value, radius, mode, shape],
-  );
+  const [showGrid, setShowGrid] = useState(true);
+  const [brush, setBrush] = useState<BrushSettings>({
+    value: 255,
+    radius: 0,
+    mode: "draw",
+    shape: "square",
+  });
 
   // FFT display options
   const { settings } = useSettings();
@@ -87,6 +86,19 @@ export default function DrawPage() {
     drawPhase(phaseCanvasRef.current, fft.real, fft.imag, size, size);
   }, [fft, size, settings.magScale]);
 
+  // Ctrl/Cmd+Z undo
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const isUndo = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z";
+      if (!isUndo) return;
+      e.preventDefault();
+      canvasRef.current?.undo();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Perform FFT on button click
   function handleTransform() {
     const w = workerRef.current;
     const grid = canvasRef.current;
@@ -109,18 +121,6 @@ export default function DrawPage() {
     w.postMessage(msg, [pixels.buffer]);
   }
 
-  // Ctrl/Cmd+Z undo
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      const isUndo = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z";
-      if (!isUndo) return;
-      e.preventDefault();
-      canvasRef.current?.undo();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
-
   return (
     <main className="p-8">
       <h1 className="text-2xl font-semibold mb-6">Draw → Fourier Transform</h1>
@@ -139,110 +139,15 @@ export default function DrawPage() {
 
           {/* Drawing controls (stacked under canvas) */}
           <div className="mt-6 max-w-140">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:items-start">
-              {/* Size + Undo/Clear */}
-              <div className="space-y-3">
-                <label className="flex flex-col gap-1">
-                  <span className="text-sm font-medium">Size</span>
-                  <select
-                    value={size}
-                    onChange={(e) => setSize(Number(e.target.value))}
-                    className="border rounded p-2"
-                  >
-                    {[2, 4, 8, 16, 32, 64, 128, 256].map((s) => (
-                      <option key={s} value={s}>
-                        {s} × {s}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="flex gap-2">
-                  <button
-                    className="border rounded px-3 py-2"
-                    onClick={() => canvasRef.current?.undo()}
-                  >
-                    Undo
-                  </button>
-                  <button
-                    className="border rounded px-3 py-2"
-                    onClick={() => canvasRef.current?.clear()}
-                  >
-                    Clear
-                  </button>
-                  <label className="flex items-center gap-2 select-none">
-                    <input
-                      type="checkbox"
-                      checked={showGrid}
-                      onChange={(e) => setShowGrid(e.target.checked)}
-                    />
-                    <span className="text-sm font-medium">Show grid</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Sliders */}
-              <div className="space-y-4">
-                <label className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Grayscale</span>
-                    <span className="text-sm tabular-nums">{value}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={255}
-                    value={value}
-                    onChange={(e) => setValue(Number(e.target.value))}
-                  />
-                </label>
-
-                <label className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Radius</span>
-                    <span className="text-sm tabular-nums">{radius}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={10}
-                    value={radius}
-                    onChange={(e) => setRadius(Number(e.target.value))}
-                  />
-                </label>
-              </div>
-
-              {/* Mode + Shape */}
-              <div className="space-y-3">
-                <label className="flex flex-col gap-1">
-                  <span className="text-sm font-medium">Mode</span>
-                  <select
-                    value={mode}
-                    onChange={(e) => setMode(e.target.value as BrushMode)}
-                    className="border rounded p-2"
-                  >
-                    <option value="draw">Draw</option>
-                    <option value="erase">Erase</option>
-                  </select>
-                </label>
-
-                <label className="flex flex-col gap-1">
-                  <span className="text-sm font-medium">Shape</span>
-                  <select
-                    value={shape}
-                    onChange={(e) => setShape(e.target.value as BrushShape)}
-                    className="border rounded p-2"
-                  >
-                    <option value="circle">Circle</option>
-                    <option value="square">Square</option>
-                    <option value="diamond">Diamond</option>
-                    <option value="cross">Cross</option>
-                    <option value="hline">Horizontal line</option>
-                    <option value="vline">Vertical line</option>
-                  </select>
-                </label>
-              </div>
-            </div>
+            <CanvasGridControls
+              gridRef={canvasRef}
+              size={size}
+              setSize={setSize}
+              brush={brush}
+              setBrush={setBrush}
+              showGrid={showGrid}
+              setShowGrid={setShowGrid}
+            />
           </div>
         </div>
 
