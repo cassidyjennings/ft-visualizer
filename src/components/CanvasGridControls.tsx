@@ -27,7 +27,7 @@ export default function CanvasGridControls({
   setBrush,
   showGrid,
   setShowGrid,
-  allowedSizes = [2, 4, 8, 16, 32, 64, 128, 256],
+  allowedSizes = [2, 4, 8, 16, 32, 64],
 }: Props) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:items-start">
@@ -38,7 +38,7 @@ export default function CanvasGridControls({
           <select
             value={size}
             onChange={(e) => setSize(Number(e.target.value))}
-            className="border rounded p-2"
+            className="border rounded bg-black p-2"
           >
             {allowedSizes.map((s) => (
               <option key={s} value={s}>
@@ -113,7 +113,7 @@ export default function CanvasGridControls({
             onChange={(e) =>
               setBrush((b) => ({ ...b, mode: e.target.value as BrushMode }))
             }
-            className="border rounded p-2"
+            className="border rounded bg-black p-2"
           >
             <option value="draw">Draw</option>
             <option value="erase">Erase</option>
@@ -127,7 +127,7 @@ export default function CanvasGridControls({
             onChange={(e) =>
               setBrush((b) => ({ ...b, shape: e.target.value as BrushShape }))
             }
-            className="border rounded p-2"
+            className="border rounded bg-black p-2"
           >
             <option value="circle">Circle</option>
             <option value="square">Square</option>

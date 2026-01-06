@@ -19,43 +19,29 @@ export interface CanvasGridHandle {
 }
 
 interface CanvasGridProps {
-  width: number;
-  height: number;
+  selectedSize: number;
   brush: BrushSettings;
+  displaySize: number;
   maxUndo?: number;
   showGrid?: boolean;
-  initialDisplaySize?: number; // px, e.g. 512
-  minDisplaySize?: number; // px, e.g. 160
 }
 
 export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid(
-  {
-    width,
-    height,
-    brush,
-    maxUndo = 50,
-    showGrid = true,
-    initialDisplaySize = 512,
-    minDisplaySize,
-  },
+  { selectedSize, brush, displaySize, maxUndo = 50, showGrid = true },
   ref,
 ) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [displaySize, setDisplaySize] = useState<number>(initialDisplaySize ?? 512);
-  const resizingRef = useRef(false);
-
   // Pixel size computed from display size
   const pixelSize = useMemo(() => {
-    // ensure at least 1px per pixel
-    return Math.max(1, Math.floor(displaySize / width));
-  }, [displaySize, width]);
+    return Math.max(1, Math.floor(displaySize / selectedSize));
+  }, [displaySize, selectedSize]);
 
-  const canvasW = useMemo(() => width * pixelSize, [width, pixelSize]);
-  const canvasH = useMemo(() => height * pixelSize, [height, pixelSize]);
+  // snapped bitmap dimensions (<= displaySize)
+  const canvasW = selectedSize * pixelSize;
+  const canvasH = selectedSize * pixelSize;
 
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const imageRef = useRef<ImageModel>(createEmptyImage(width, height, 0));
+  const imageRef = useRef<ImageModel>(createEmptyImage(selectedSize, 0));
 
   // Undo history stores snapshots of image.data
   const historyRef = useRef<Uint8Array[]>([]);
@@ -69,6 +55,7 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
   const strokeStartRef = useRef<{ x: number; y: number } | null>(null);
   const strokeBaseSnapshotRef = useRef<Uint8Array | null>(null);
 
+  ///// UNDO + CLEAR HELPERS /////
   function pushHistorySnapshot(snapshot: Uint8Array) {
     // Drop redo states if any
     const idx = historyIndexRef.current;
@@ -102,64 +89,13 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
   }
 
   function clear() {
-    imageRef.current = createEmptyImage(width, height, 0);
+    imageRef.current = createEmptyImage(selectedSize, 0);
     initHistory();
     redrawBase();
     redrawOverlay();
   }
 
-  useImperativeHandle(ref, () => ({
-    undo,
-    clear,
-    getImage: () => imageRef.current,
-    getImageData: () => imageRef.current.data.slice(),
-  }));
-
-  // Reset image & history when size changes
-  useEffect(() => {
-    imageRef.current = createEmptyImage(width, height, 0);
-    initHistory();
-    redrawBase();
-    redrawOverlay();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width, height]);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const ro = new ResizeObserver(() => {
-      if (resizingRef.current) return;
-      resizingRef.current = true;
-
-      try {
-        const rect = el.getBoundingClientRect();
-        const w = Math.floor(rect.width);
-        if (!Number.isFinite(w) || w <= 0) return;
-
-        // Set height to equal width
-        el.style.height = `${w}px`;
-
-        // Use width as the displaySize
-        setDisplaySize(w);
-      } finally {
-        // next frame to avoid feedback loops
-        requestAnimationFrame(() => {
-          resizingRef.current = false;
-        });
-      }
-    });
-
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  useEffect(() => {
-    redrawBase();
-    redrawOverlay();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pixelSize, showGrid, brush.radius, brush.shape]);
-
+  ///// REDRAW (RESET CANVAS CONTENT) HELPERS /////
   function redrawBase() {
     const canvas = baseCanvasRef.current;
     if (!canvas) return;
@@ -170,9 +106,9 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const v = data[y * width + x];
+    for (let y = 0; y < selectedSize; y++) {
+      for (let x = 0; x < selectedSize; x++) {
+        const v = data[y * selectedSize + x];
         ctx.fillStyle = `rgb(${v}, ${v}, ${v})`;
         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
       }
@@ -186,19 +122,19 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
       ctx.lineWidth = 1;
 
       // Draw thin grid (use 0.5 offset for crisp 1px lines)
-      for (let x = 0; x <= width; x++) {
+      for (let x = 0; x <= selectedSize; x++) {
         const px = x * pixelSize + 0.5;
         ctx.beginPath();
         ctx.moveTo(px, 0);
-        ctx.lineTo(px, height * pixelSize);
+        ctx.lineTo(px, selectedSize * pixelSize);
         ctx.stroke();
       }
 
-      for (let y = 0; y <= height; y++) {
+      for (let y = 0; y <= selectedSize; y++) {
         const py = y * pixelSize + 0.5;
         ctx.beginPath();
         ctx.moveTo(0, py);
-        ctx.lineTo(width * pixelSize, py);
+        ctx.lineTo(selectedSize * pixelSize, py);
         ctx.stroke();
       }
 
@@ -206,17 +142,17 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
       ctx.strokeStyle = "rgba(255,255,255,0.45)";
       ctx.lineWidth = 2;
 
-      const cx = (width / 2) * pixelSize + 0.5;
-      const cy = (height / 2) * pixelSize + 0.5;
+      const cx = (selectedSize / 2) * pixelSize + 0.5;
+      const cy = (selectedSize / 2) * pixelSize + 0.5;
 
       ctx.beginPath();
       ctx.moveTo(cx, 0);
-      ctx.lineTo(cx, height * pixelSize);
+      ctx.lineTo(cx, selectedSize * pixelSize);
       ctx.stroke();
 
       ctx.beginPath();
       ctx.moveTo(0, cy);
-      ctx.lineTo(width * pixelSize, cy);
+      ctx.lineTo(selectedSize * pixelSize, cy);
       ctx.stroke();
 
       ctx.restore();
@@ -234,7 +170,7 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
     if (!hoverPos) return;
 
     const { x, y } = hoverPos;
-    if (x < 0 || y < 0 || x >= width || y >= height) return;
+    if (x < 0 || y < 0 || x >= selectedSize || y >= selectedSize) return;
 
     // Preview outline
     const r = Math.max(0, Math.floor(brush.radius));
@@ -298,10 +234,16 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
     }
   }
 
+  ///// DRAWING HELPERS /////
   function eventToPixel(e: React.MouseEvent<HTMLCanvasElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = Math.floor((e.clientX - rect.left) / pixelSize);
-    const y = Math.floor((e.clientY - rect.top) / pixelSize);
+
+    // Position within the overlay canvas element (already offset in CSS)
+    const xPx = e.clientX - rect.left;
+    const yPx = e.clientY - rect.top;
+
+    const x = Math.floor(xPx / pixelSize);
+    const y = Math.floor(yPx / pixelSize);
     return { x, y };
   }
 
@@ -365,28 +307,39 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
     redrawOverlay();
   }
 
+  useImperativeHandle(ref, () => ({
+    undo,
+    clear,
+    getImage: () => imageRef.current,
+    getImageData: () => imageRef.current.data.slice(),
+  }));
+
+  // Reset image & history when size changes
+  useEffect(() => {
+    imageRef.current = createEmptyImage(selectedSize, 0);
+    initHistory();
+    redrawBase();
+    redrawOverlay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSize, pixelSize]);
+
   return (
     <div
-      ref={containerRef}
-      className="relative inline-block border"
+      className="relative inline-block bg-black overflow-hidden border"
       style={{
-        width: initialDisplaySize ?? 512,
-        height: initialDisplaySize ?? 512,
-        resize: "horizontal",
-        overflow: "hidden",
-        minWidth: minDisplaySize ?? 160,
-        minHeight: minDisplaySize ?? 160,
+        width: canvasW,
+        height: canvasH,
       }}
     >
-      <div className="absolute right-2 top-2 rounded bg-white/80 px-2 py-1 text-xs">
-        {width}×{height} • pixelSize={pixelSize}px
+      <div className="absolute right-2 top-2 rounded bg-black/60 px-2 py-1 text-xs">
+        {selectedSize}×{selectedSize} • pixelSize={pixelSize}px
       </div>
 
       <canvas
         ref={baseCanvasRef}
         width={canvasW}
         height={canvasH}
-        className="absolute left-0 top-0 block select-none"
+        className="absolute block select-none"
         style={{ imageRendering: "pixelated" }}
       />
 

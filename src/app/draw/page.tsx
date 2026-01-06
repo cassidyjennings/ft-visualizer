@@ -7,6 +7,7 @@ import { makeFFTWorker } from "@/lib/workers/fftWorkerClient";
 import type { FFTRequest, FFTResponse } from "@/lib/workers/fft.worker";
 import type { BrushSettings } from "@/lib/image/brush";
 import { useSettings } from "@/lib/settings/SettingsContext";
+import { useMeasure } from "@/lib/ui/useMeasure";
 
 type FFTState = {
   width: number;
@@ -15,23 +16,141 @@ type FFTState = {
   imag: Float32Array;
 } | null;
 
-function clamp01(x: number) {
-  return Math.max(0, Math.min(1, x));
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, v));
 }
 
 export default function DrawPage() {
-  // Canvas ref
-  const canvasRef = useRef<CanvasGridHandle | null>(null);
+  const { ref: leftPanelRef, rect: leftPanelRect } = useMeasure<HTMLDivElement>();
+  const { ref: controlsRef, rect: controlsRect } = useMeasure<HTMLDivElement>();
+  const { settings } = useSettings();
 
-  // Worker
+  // ===== Left canvas display sizing =====
+  const [viewportH, setViewportH] = useState(800);
+  const HEADER_H = 56;
+  const MAIN_PAD_Y = 24;
+  const GAP_CANVAS_CONTROLS = 24;
+  const EXTRA_MARGIN = 12;
+  const MIN_CANVAS = 220;
+  const MAX_CANVAS = Math.floor(viewportH * 0.75);
+
+  useEffect(() => {
+    const onResize = () => setViewportH(window.innerHeight);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const availableH =
+    viewportH -
+    HEADER_H -
+    MAIN_PAD_Y * 2 -
+    controlsRect.height -
+    GAP_CANVAS_CONTROLS -
+    EXTRA_MARGIN;
+
+  // Use left panel width (more accurate than measuring the whole grid)
+  const availableW = leftPanelRect.width;
+
+  const canvasDisplaySize = Math.floor(Math.min(availableW, availableH));
+  const idealDisplaySize = Math.max(MIN_CANVAS, Math.min(MAX_CANVAS, canvasDisplaySize));
+
+  const BASE = 64;
+  const displaySize = Math.max(BASE, Math.floor(idealDisplaySize / BASE) * BASE);
+
+  // ===== Right panel sizing & independent resizing =====
+  const rightColH = leftPanelRect.height; // match left height
+  const rightColW = leftPanelRect.width; // match left width (grid 1fr)
+
+  const SPEC_GAP = 24;
+  const LABEL_H = 24;
+  const RIGHT_EXTRA = 12;
+  const SPEC_MIN = 64;
+
+  // Total vertical budget for the two square *side lengths* combined
+  const totalSquaresH = Math.floor(rightColH - SPEC_GAP - 2 * LABEL_H - RIGHT_EXTRA);
+  // Width constraint for each square
+  const maxW = Math.floor(rightColW);
+
+  const budgetReady = rightColH > 0 && rightColW > 0 && totalSquaresH >= 2 * SPEC_MIN;
+
+  // Largest one can be if the other is at min (and must also fit width)
+  const maxOne = budgetReady
+    ? Math.max(SPEC_MIN, Math.min(maxW, totalSquaresH - SPEC_MIN))
+    : SPEC_MIN;
+  // One degree of freedom: how much of the height budget goes to magnitude
+  const [magFrac, setMagFrac] = useState(0.5); // 0..1
+
+  // Convert magFrac -> magPx (then phase fills remainder)
+  let magPx = budgetReady ? Math.round(magFrac * totalSquaresH) : SPEC_MIN;
+  magPx = clamp(magPx, SPEC_MIN, maxOne);
+
+  const phasePx = budgetReady ? clamp(totalSquaresH - magPx, SPEC_MIN, maxW) : SPEC_MIN;
+
+  // If phase got width-clamped, recompute mag to keep the coupled constraint
+  magPx = budgetReady ? clamp(totalSquaresH - phasePx, SPEC_MIN, maxOne) : SPEC_MIN;
+
+  // Fallback size for before measurement exists
+  const initialPx = budgetReady
+    ? clamp(Math.floor(totalSquaresH / 2), SPEC_MIN, maxOne)
+    : SPEC_MIN;
+
+  // Generic drag state: remembers which plot we are resizing
+  const dragRef = useRef<{
+    key: "mag" | "phase";
+    startX: number;
+    startY: number;
+    startMagPx: number;
+    startPhasePx: number;
+  } | null>(null);
+
+  function startDrag(key: "mag" | "phase", e: React.PointerEvent) {
+    if (!budgetReady) return;
+
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+
+    dragRef.current = {
+      key,
+      startX: e.clientX,
+      startY: e.clientY,
+      startMagPx: magPx,
+      startPhasePx: phasePx,
+    };
+  }
+
+  function moveDrag(e: React.PointerEvent) {
+    const st = dragRef.current;
+    if (!st || !budgetReady) return;
+
+    const dx = e.clientX - st.startX;
+    const dy = e.clientY - st.startY;
+
+    // corner-resize feel
+    const d = Math.max(dx, dy);
+
+    // Dragging mag handle means mag tries to grow by d.
+    // Dragging phase handle means phase tries to grow by d -> mag shrinks.
+    let desiredMagPx =
+      st.key === "mag" ? st.startMagPx + d : totalSquaresH - (st.startPhasePx + d);
+
+    desiredMagPx = clamp(desiredMagPx, SPEC_MIN, maxOne);
+
+    // Store as fraction (0..1); derived sizes update automatically
+    setMagFrac(desiredMagPx / totalSquaresH);
+  }
+
+  function endDrag() {
+    dragRef.current = null;
+  }
+
+  // ===== FFT plumbing =====
+  const canvasRef = useRef<CanvasGridHandle | null>(null);
   const workerRef = useRef<Worker | null>(null);
 
-  // Spectrum canvases
   const magCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const phaseCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Display controls
-  const [size, setSize] = useState(64);
+  const [selectedSize, setSize] = useState(16);
   const [showGrid, setShowGrid] = useState(true);
   const [brush, setBrush] = useState<BrushSettings>({
     value: 255,
@@ -40,16 +159,10 @@ export default function DrawPage() {
     shape: "square",
   });
 
-  // FFT display options
-  const { settings } = useSettings();
-
-  // FFT outputs
   const [fft, setFft] = useState<FFTState>(null);
-
-  // "busy" UI
   const [isTransforming, setIsTransforming] = useState(false);
 
-  // Initialize worker on first render
+  // Initialize FFT worker
   useEffect(() => {
     const w = makeFFTWorker();
     workerRef.current = w;
@@ -70,23 +183,23 @@ export default function DrawPage() {
     };
   }, []);
 
-  // Draw spectrum whenever FFT output or display options change
+  // Update Phase and Magnitude canvases
   useEffect(() => {
     if (!fft) return;
-    if (fft.width !== size || fft.height !== size) return; // ignore stale FFT
+    if (fft.width !== selectedSize || fft.height !== selectedSize) return;
 
     drawMagnitude(
       magCanvasRef.current,
       fft.real,
       fft.imag,
-      size,
-      size,
+      selectedSize,
+      selectedSize,
       settings.magScale,
     );
-    drawPhase(phaseCanvasRef.current, fft.real, fft.imag, size, size);
-  }, [fft, size, settings.magScale]);
+    drawPhase(phaseCanvasRef.current, fft.real, fft.imag, selectedSize, selectedSize);
+  }, [fft, selectedSize, settings.magScale]);
 
-  // Ctrl/Cmd+Z undo
+  // Undo
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const isUndo = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z";
@@ -98,7 +211,6 @@ export default function DrawPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // Perform FFT on button click
   function handleTransform() {
     const w = workerRef.current;
     const grid = canvasRef.current;
@@ -106,42 +218,36 @@ export default function DrawPage() {
 
     setIsTransforming(true);
 
-    const pixels = grid.getImageData(); // Uint8Array length size*size
-
+    const pixels = grid.getImageData();
     const msg: FFTRequest = {
-      width: size,
-      height: size,
+      width: selectedSize,
+      height: selectedSize,
       pixels,
       shift: settings.shift === "shifted",
       normalization: settings.normalization,
       center: settings.center,
     };
 
-    // Transfer pixels buffer to worker for speed
     w.postMessage(msg, [pixels.buffer]);
   }
 
   return (
-    <main className="p-8">
-      <h1 className="text-2xl font-semibold mb-6">Draw → Fourier Transform</h1>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto_1fr] items-start">
+    <div className="space-y-6">
+      <div className="w-full grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center">
         {/* LEFT: Canvas + drawing controls */}
-        <div className="min-w-0">
+        <div ref={leftPanelRef} className="min-w-0 flex flex-col items-center">
           <CanvasGrid
             ref={canvasRef}
-            width={size}
-            height={size}
+            selectedSize={selectedSize}
             brush={brush}
             showGrid={showGrid}
-            initialDisplaySize={512}
-            minDisplaySize={160}
+            displaySize={displaySize}
           />
 
-          {/* Drawing controls (stacked under canvas) */}
-          <div className="mt-6 max-w-140">
+          <div ref={controlsRef} className="mt-6 w-full max-w-140 flex justify-center">
             <CanvasGridControls
               gridRef={canvasRef}
-              size={size}
+              size={selectedSize}
               setSize={setSize}
               brush={brush}
               setBrush={setBrush}
@@ -151,54 +257,142 @@ export default function DrawPage() {
           </div>
         </div>
 
-        {/* MIDDLE: Transform button centered */}
-        <div className="flex justify-center lg:pt-10">
+        {/* MIDDLE: Arrow transform button */}
+        <div className="flex justify-center">
           <button
+            aria-label="Transform"
+            title="Compute DFT magnitude + phase"
             onClick={handleTransform}
             disabled={isTransforming}
-            className="border rounded px-4 py-3 font-medium disabled:opacity-50 whitespace-nowrap"
-            title="Compute DFT magnitude + phase"
+            className="inline-flex items-center justify-center p-4 hover:bg-white/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            {isTransforming ? "Transforming…" : "Transform →"}
+            <svg
+              viewBox="0 0 24 24"
+              className="w-14 h-14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M2 12h18" />
+              <path d="M16 5l6 7-6 7" />
+            </svg>
           </button>
         </div>
 
-        {/* RIGHT: Magnitude + Phase side-by-side, controls underneath */}
-        <div className="min-w-0">
-          {/* Two equal canvases */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="min-w-0">
+        {/* RIGHT: Magnitude + Phase displays */}
+        <div
+          className="min-w-0 flex flex-col items-center"
+          style={{ height: rightColH || undefined }}
+        >
+          <div className="h-full min-h-0 w-full flex flex-col gap-6 items-center">
+            {/* Magnitude */}
+            <div className="w-full flex flex-col items-center">
               <div className="mb-2 font-medium">Magnitude ({settings.magScale})</div>
-              <canvas
-                ref={magCanvasRef}
-                width={size}
-                height={size}
-                className="border w-full aspect-square"
-                style={{ imageRendering: "pixelated" }}
-              />
+
+              <div
+                className="relative"
+                style={{ width: magPx || initialPx, height: magPx || initialPx }}
+              >
+                <canvas
+                  ref={magCanvasRef}
+                  width={selectedSize}
+                  height={selectedSize}
+                  className="border bg-black block"
+                  style={{ width: "100%", height: "100%", imageRendering: "pixelated" }}
+                />
+
+                <div
+                  className="absolute bottom-1 right-1 h-5 w-5 rounded cursor-se-resize touch-none flex items-center justify-center"
+                  title="Drag to resize magnitude"
+                  onPointerDown={(e) => startDrag("mag", e)}
+                  onPointerMove={moveDrag}
+                  onPointerUp={endDrag}
+                  onPointerCancel={endDrag}
+                >
+                  <svg viewBox="0 0 16 16" className="h-4 w-4 opacity-80">
+                    <path
+                      d="M6 14L14 6"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M9 14L14 9"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M12 14L14 12"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+              </div>
             </div>
 
-            <div className="min-w-0">
+            {/* Phase */}
+            <div className="w-full flex flex-col items-center">
               <div className="mb-2 font-medium">Phase</div>
-              <canvas
-                ref={phaseCanvasRef}
-                width={size}
-                height={size}
-                className="border w-full aspect-square"
-                style={{ imageRendering: "pixelated" }}
-              />
+
+              <div
+                className="relative"
+                style={{ width: phasePx || initialPx, height: phasePx || initialPx }}
+              >
+                <canvas
+                  ref={phaseCanvasRef}
+                  width={selectedSize}
+                  height={selectedSize}
+                  className="border bg-black block"
+                  style={{ width: "100%", height: "100%", imageRendering: "pixelated" }}
+                />
+
+                <div
+                  className="absolute bottom-1 right-1 h-5 w-5 rounded cursor-se-resize touch-none flex items-center justify-center"
+                  title="Drag to resize phase"
+                  onPointerDown={(e) => startDrag("phase", e)}
+                  onPointerMove={moveDrag}
+                  onPointerUp={endDrag}
+                  onPointerCancel={endDrag}
+                >
+                  <svg viewBox="0 0 16 16" className="h-4 w-4 opacity-80">
+                    <path
+                      d="M6 14L14 6"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M9 14L14 9"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M12 14L14 12"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
+
             {!fft && (
-              <span className="text-gray-600">
-                Click <span className="font-medium">Transform →</span> to compute the DFT.
-              </span>
+              <div className="text-sm text-white/70">
+                Click <span className="font-medium text-white">Transform</span> to compute
+                the DFT.
+              </div>
             )}
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -229,7 +423,7 @@ function drawMagnitude(
   const inv = maxV > 0 ? 1 / maxV : 1;
 
   for (let i = 0; i < vals.length; i++) {
-    const g = Math.floor(255 * clamp01(vals[i] * inv));
+    const g = Math.floor(255 * clamp(vals[i] * inv, 0, 1));
     const j = i * 4;
     img.data[j + 0] = g;
     img.data[j + 1] = g;
@@ -254,33 +448,27 @@ function drawPhase(
   const img = ctx.createImageData(width, height);
 
   for (let pix_i = 0; pix_i < width * height; pix_i++) {
-    const phi = Math.atan2(imag[pix_i], real[pix_i]); // [-pi, pi]
-    const t = Math.abs(phi) / Math.PI; // [0, 1]
+    const phi = Math.atan2(imag[pix_i], real[pix_i]);
+    const t = Math.abs(phi) / Math.PI;
 
     let r = 0;
     let g = 0;
     let b = 0;
 
-    if (phi > 0) {
-      // Positive phase -> red
-      r = Math.round(255 * t);
-    } else if (phi < 0) {
-      b = Math.round(255 * t);
-    }
+    if (phi > 0) r = Math.round(255 * t);
+    else if (phi < 0) b = Math.round(255 * t);
 
-    // White at pi and -pi
     if (t > 0.999) {
       r = 255;
       g = 255;
       b = 255;
     }
 
-    // Each pixel has 4 consecutive entries in img.data
-    const pix_start = pix_i * 4;
-    img.data[pix_start + 0] = r; // R entry
-    img.data[pix_start + 1] = g; // G entry
-    img.data[pix_start + 2] = b; // B entry
-    img.data[pix_start + 3] = 255; // A entry
+    const j = pix_i * 4;
+    img.data[j + 0] = r;
+    img.data[j + 1] = g;
+    img.data[j + 2] = b;
+    img.data[j + 3] = 255;
   }
 
   ctx.putImageData(img, 0, 0);

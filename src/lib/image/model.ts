@@ -4,10 +4,10 @@ export interface ImageModel {
   data: Uint8Array; // grayscale 0–255
 }
 
-export function createEmptyImage(width: number, height: number, value = 0): ImageModel {
+export function createEmptyImage(size: number, value = 0): ImageModel {
   return {
-    width,
-    height,
-    data: new Uint8Array(width * height).fill(value),
+    width: size,
+    height: size,
+    data: new Uint8Array(size * size).fill(value),
   };
 }
