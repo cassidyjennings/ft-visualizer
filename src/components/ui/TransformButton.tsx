@@ -14,19 +14,28 @@ export default function TransformButton({ onClick, disabled }: TransformButtonPr
       title="Compute DFT magnitude + phase"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex items-center justify-center p-4 hover:bg-white/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition"
+      className="
+        inline-flex items-center justify-center
+        px-2 py-1.5
+        rounded-sm
+        hover:bg-white/10
+        active:scale-95
+        disabled:opacity-50 disabled:cursor-not-allowed
+        transition
+      "
     >
       <svg
         viewBox="0 0 24 24"
-        className="w-14 h-14"
+        className="w-36 h-24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2.75"
+        strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M2 12h18" />
-        <path d="M16 5l6 7-6 7" />
+        {/* Shaft ends exactly at arrowhead base */}
+        <path d="M 2 12 h16" />
+        <path d="M 15 7 l 5 5 -5 5" />
       </svg>
     </button>
   );

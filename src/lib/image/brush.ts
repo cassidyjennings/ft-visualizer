@@ -48,7 +48,7 @@ export function stampBrush(
       case "circle":
         return dx * dx + dy * dy <= r * r;
       case "diamond":
-        return Math.abs(dx) + Math.abs(dy) <= r * r;
+        return Math.abs(dx) + Math.abs(dy) <= r;
       case "hline":
         return Math.abs(dy) <= 0 && Math.abs(dx) <= r;
       case "vline":

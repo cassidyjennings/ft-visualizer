@@ -35,7 +35,7 @@ export default function SettingsPage() {
             setSettings((s) => ({ ...s, center: e.target.value as CenterConvention }))
           }
         >
-          <option value="centerPixel">Center pixel is (0,0)</option>
+          <option value="centerPixel">Bottom right middle pixel is (0,0)</option>
           <option value="centerBetween">Between middle pixels is (0,0)</option>
           <option value="topLeft">Top-left is (0,0)</option>
         </select>
@@ -87,7 +87,7 @@ export default function SettingsPage() {
             }))
           }
         >
-          <option value="forward">Forward (1/N) — 6.300 convention</option>
+          <option value="forward">Forward (1/N)</option>
           <option value="inverse">Inverse (1/N)</option>
           <option value="unitary">Unitary (1/√N on both)</option>
           <option value="none">None</option>

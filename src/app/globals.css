@@ -25,6 +25,17 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
+/* fallback if you want */
+@supports not (scrollbar-gutter: stable) {
+  html {
+    overflow-y: scroll;
+  }
+}
+
 .arrow-btn {
   padding: 12px 18px;
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -41,6 +52,7 @@ body {
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* Icon buttons */
 .icon-button {
   background: none;
   border: none;
@@ -55,4 +67,34 @@ body {
 
 .icon-button:focus-visible {
   outline: 2px solid #3b82f6;
+}
+
+/* Grayscale slider thumb*/
+.gray-slider {
+  background: var(--track);
+  --thumb: rgb(128, 128, 128);
+}
+
+.gray-slider:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Chrome / Edge / Safari */
+.gray-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--thumb);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Firefox */
+.gray-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--thumb);
+  border: 2px solid rgba(255, 255, 255, 0.4);
 }
