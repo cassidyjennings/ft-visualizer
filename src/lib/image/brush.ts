@@ -18,10 +18,12 @@ export function stampBrush(
   cx: number,
   cy: number,
   settings: BrushSettings,
+  isDark: boolean,
 ): void {
   const { width, height, data } = image;
   const { radius, mode, value, shape } = settings;
-  const paintValue = mode === "erase" ? 0 : clampByte(value);
+  const bg = isDark ? 0 : 255;
+  const paintValue = mode === "erase" ? bg : clampByte(value);
 
   // radius 0 -> just one pixel
   const r = Math.max(0, Math.floor(radius));
@@ -84,6 +86,7 @@ export function strokeLine(
   x1: number,
   y1: number,
   settings: BrushSettings,
+  isDark: boolean,
 ): void {
   // Bresenham's line algorithm
   let x = x0;
@@ -98,7 +101,7 @@ export function strokeLine(
   let err = dx - dy;
 
   while (true) {
-    stampBrush(image, x, y, settings);
+    stampBrush(image, x, y, settings, isDark);
 
     if (x === x1 && y === y1) break;
 

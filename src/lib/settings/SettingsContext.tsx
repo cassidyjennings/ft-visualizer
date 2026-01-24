@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
 import type { Settings } from "./types";
 import { defaultSettings } from "./defaults";
+import { useEffectiveColoring } from "@/lib/settings/useEffectiveColoring";
 
 const STORAGE_KEY = "ftv_settings_v1";
 
@@ -27,6 +28,12 @@ function loadInitialSettings(): Settings {
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings>(() => loadInitialSettings());
+  const effectiveColoring = useEffectiveColoring(settings.coloring); // "light" | "dark"
+  useEffect(() => {
+    const root = document.documentElement;
+    const effective = effectiveColoring; // from hook above
+    root.classList.toggle("dark", effective === "dark");
+  }, [effectiveColoring]);
 
   // Persist on change
   useEffect(() => {

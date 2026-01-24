@@ -18,7 +18,8 @@ export default function TransformButton({ onClick, disabled }: TransformButtonPr
         inline-flex items-center justify-center
         px-2 py-1.5
         rounded-sm
-        hover:bg-white/10
+        text-brand
+        hover:bg-fg/10
         active:scale-95
         disabled:opacity-50 disabled:cursor-not-allowed
         transition
@@ -26,7 +27,7 @@ export default function TransformButton({ onClick, disabled }: TransformButtonPr
     >
       <svg
         viewBox="0 0 24 24"
-        className="w-36 h-24"
+        className="w-36 h-24 drop-shadow-sm drop-shadow-border"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.75"

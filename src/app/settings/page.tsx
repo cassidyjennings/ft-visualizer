@@ -16,7 +16,7 @@ export default function SettingsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Settings</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted mt-1">
             Choose conventions for coordinates and Fourier display.
           </p>
         </div>
@@ -39,7 +39,7 @@ export default function SettingsPage() {
           <option value="centerBetween">Between middle pixels is (0,0)</option>
           <option value="topLeft">Top-left is (0,0)</option>
         </select>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           This affects the crosshair/axis overlay (and later any coordinate readouts).
         </p>
       </section>
@@ -92,7 +92,7 @@ export default function SettingsPage() {
           <option value="unitary">Unitary (1/√N on both)</option>
           <option value="none">None</option>
         </select>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           N is the total number of samples (for 2D: width×height).
         </p>
       </section>
