@@ -5,5 +5,6 @@ export const defaultSettings: Settings = {
   center: "centerPixel",
   shift: "shifted",
   magScale: "linear",
+  magNormalize: "max",
   normalization: "forward",
 };

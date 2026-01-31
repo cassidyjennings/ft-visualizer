@@ -29,26 +29,25 @@ function loadInitialSettings(): Settings {
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings>(() => loadInitialSettings());
   const effectiveColoring = useEffectiveColoring(settings.coloring); // "light" | "dark"
+
+  // 1) Apply theme class from ONE place
   useEffect(() => {
-    const root = document.documentElement;
-    const effective = effectiveColoring; // from hook above
-    root.classList.toggle("dark", effective === "dark");
+    document.documentElement.classList.toggle("dark", effectiveColoring === "dark");
   }, [effectiveColoring]);
 
-  // Persist on change
+  // 2) Persist settings to the SAME key you load from
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    } catch {
-      // ignore quota/private mode
-    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
 
   const value = useMemo(
     () => ({
       settings,
       setSettings,
-      reset: () => setSettings(defaultSettings),
+      reset: () => {
+        setSettings(defaultSettings);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultSettings));
+      },
     }),
     [settings],
   );

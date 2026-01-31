@@ -8,6 +8,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import RegalCanvasFrame from "@/components/ui/RegalCanvasFrame";
+
 import { ImageModel, createEmptyImage } from "@/lib/image/model";
 import { BrushSettings, strokeLine } from "@/lib/image/brush";
 import { useSettings } from "@/lib/settings/SettingsContext";
@@ -27,6 +29,7 @@ export interface CanvasGridHandle {
   getImage: () => ImageModel;
   getImageData: () => Uint8Array;
   invertColors: () => void;
+  getOuterSize: () => number; // canvas + frame size in px
 }
 
 interface CanvasGridProps {
@@ -35,10 +38,25 @@ interface CanvasGridProps {
   displaySize: number;
   maxUndo?: number;
   showGrid?: boolean;
+
+  showFrame?: boolean;
+  frameThickness?: number; // maps to RegalCanvasFrame frame
+  framePad?: number; // maps to RegalCanvasFrame pad
+  frameVariant?: "navy" | "tan";
 }
 
 export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid(
-  { selectedSize, brush, displaySize, maxUndo = 50, showGrid = true },
+  {
+    selectedSize,
+    brush,
+    displaySize,
+    maxUndo = 50,
+    showGrid = true,
+
+    showFrame = true,
+    frameThickness = 14,
+    framePad = 2,
+  },
   ref,
 ) {
   const { settings } = useSettings();
@@ -57,12 +75,15 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
   }, [displaySize, selectedSize]);
 
   // snapped bitmap dimensions (<= displaySize)
-  const canvasW = selectedSize * pixelSize;
-  const canvasH = selectedSize * pixelSize;
+  const canvasSize = selectedSize * pixelSize;
 
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageRef = useRef<ImageModel>(createEmptyImage(selectedSize, bg));
+
+  // Frame sizing
+  const inset = framePad + frameThickness;
+  const outerPx = showFrame ? canvasSize + 2 * inset : canvasSize;
 
   // Undo history stores snapshots of image.data
   const historyRef = useRef<Uint8Array[]>([]);
@@ -398,6 +419,7 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
       redrawBase();
       redrawOverlay(null);
     },
+    getOuterSize: () => outerPx,
   }));
 
   // Redraw after theme / grid settings change.
@@ -408,7 +430,8 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
       redrawOverlay(); // keeps brush preview consistent too
     });
     return () => cancelAnimationFrame(id);
-  }, [showGrid, originMode, isDark, pixelSize, selectedSize]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showGrid, originMode, effectiveTheme, pixelSize, selectedSize]);
 
   // Reset image & history when size changes
   useEffect(() => {
@@ -420,36 +443,55 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
   }, [selectedSize, pixelSize]);
 
   return (
-    <div
-      className="relative shadow-lg inline-block overflow-hidden bg-bg border-2 border-brand-3"
-      style={{ width: canvasW, height: canvasH }}
-    >
-      <canvas
-        ref={baseCanvasRef}
-        width={canvasW}
-        height={canvasH}
-        className="absolute inset-0 block select-none"
-        style={{ imageRendering: "pixelated" }}
-      />
+    <div className="relative inline-block" style={{ width: outerPx, height: outerPx }}>
+      {/* Frame behind (does NOT block pixels) */}
+      {showFrame && (
+        <div className="absolute inset-0 pointer-events-none">
+          <RegalCanvasFrame
+            innerSize={canvasSize}
+            frame={frameThickness}
+            pad={framePad}
+          />
+        </div>
+      )}
 
-      <canvas
-        ref={overlayCanvasRef}
-        width={canvasW}
-        height={canvasH}
-        className="absolute inset-0 select-none cursor-crosshair"
-        style={{ imageRendering: "pixelated" }}
-        onMouseDown={(e) => {
-          setHoverPos(eventToPixel(e));
-          beginStroke(e);
+      {/* Canvases placed inside the frame window */}
+      <div
+        className="absolute"
+        style={{
+          left: showFrame ? inset : 0,
+          top: showFrame ? inset : 0,
+          width: canvasSize,
+          height: canvasSize,
         }}
-        onMouseMove={(e) => continueStroke(e)}
-        onMouseUp={() => endStroke()}
-        onMouseLeave={() => {
-          endStroke();
-          setHoverPos(null);
-          redrawOverlay(null);
-        }}
-      />
+      >
+        <canvas
+          ref={baseCanvasRef}
+          width={canvasSize}
+          height={canvasSize}
+          className="absolute inset-0 block select-none"
+          style={{ imageRendering: "pixelated" }}
+        />
+
+        <canvas
+          ref={overlayCanvasRef}
+          width={canvasSize}
+          height={canvasSize}
+          className="absolute inset-0 select-none cursor-crosshair"
+          style={{ imageRendering: "pixelated" }}
+          onMouseDown={(e) => {
+            setHoverPos(eventToPixel(e));
+            beginStroke(e);
+          }}
+          onMouseMove={(e) => continueStroke(e)}
+          onMouseUp={() => endStroke()}
+          onMouseLeave={() => {
+            endStroke();
+            setHoverPos(null);
+            redrawOverlay(null);
+          }}
+        />
+      </div>
     </div>
   );
 });

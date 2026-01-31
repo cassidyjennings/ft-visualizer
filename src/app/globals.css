@@ -29,6 +29,11 @@
   --focus: #ab2a4c;
   --thumb: #dd3153;
   --track: #f3e9dc;
+
+  /* Regal frame (dark -> tan) */
+  --frame-primary: #d5b385; /* tan */
+  --frame-accent: #231c42; /* navy */
+  --frame-trim: #231c42; /* navy trim (or keep gold if you prefer) */
 }
 
 /* Dark mode */
@@ -50,6 +55,11 @@
   --focus: #dd3153;
   --thumb: #f3e9dc;
   --track: #231c42;
+
+  /* Regal frame (light -> navy) */
+  --frame-primary: #231c42; /* navy */
+  --frame-accent: #d5b385; /* warm tan (matches your border) */
+  --frame-trim: #d6b16a; /* gold-ish trim */
 }
 
 /* Tailwind v4 theme tokens */
@@ -64,6 +74,9 @@
   --color-brand-2: var(--brand-2);
   --color-brand-3: var(--brand-3);
   --color-brand-contrast: var(--brand-contrast);
+  --color-frame-primary: var(--frame-primary);
+  --color-frame-accent: var(--frame-accent);
+  --color-frame-trim: var(--frame-trim);
 
   /* Fonts */
   --font-sans: var(--font-source-sans);

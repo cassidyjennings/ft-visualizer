@@ -10,7 +10,7 @@ export function ToggleGroup({
   return (
     <div
       className={[
-        "inline-flex overflow-hidden border border-fg/20 rounded",
+        "inline-flex overflow-hidden border border-border rounded",
         "min-w-0",
         className,
       ].join(" ")}
@@ -53,7 +53,7 @@ export function ToggleItem({
         grow ? "flex-1 basis-0" : "",
         "bg-card hover:bg-fg/10 active:scale-[0.98] transition",
         active ? "bg-fg/15" : "",
-        isFirst ? "" : "border-l border-fg/20",
+        isFirst ? "" : "border-l border-border",
         className,
       ].join(" ")}
     >

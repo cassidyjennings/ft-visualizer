@@ -9,6 +9,7 @@ import MagnitudeCanvas from "@/components/canvases/MagnitudeCanvas";
 import PhaseCanvas from "@/components/canvases/PhaseCanvas";
 import TransformButton from "@/components/ui/TransformButton";
 import PhaseKey from "@/components/ui/PhaseKey";
+import MagnitudeKey from "@/components/ui/MagnitudeKey";
 
 import type { BrushSettings } from "@/lib/image/brush";
 import { useEffectiveColoring } from "@/lib/settings/useEffectiveColoring";
@@ -51,6 +52,12 @@ export default function DrawPage() {
   const phaseEmpty = "var(--null)";
   const magEmpty = useMemo(() => (isDark ? "black" : "white"), [isDark]);
 
+  const [magChromePx, setMagChromePx] = useState(0);
+  const [phaseChromePx, setPhaseChromePx] = useState(0);
+
+  // Frame inset: spectra should be "smaller" than draw
+  const SPEC_FRAME_INSET = 10; // tweak
+
   // ===== Theme flip sync (brush + canvas) =====
   const prevIsDarkRef = useRef(isDark);
   useEffect(() => {
@@ -84,6 +91,7 @@ export default function DrawPage() {
     controlsWrapRef,
     arrowRef,
     rightPanelRef,
+    leftPanelRef,
     spectraPairRef,
     displaySize,
     isLayoutReady,
@@ -92,25 +100,59 @@ export default function DrawPage() {
     startDrag,
     moveDrag,
     endDrag,
-  } = useSpectraLayout();
+  } = useSpectraLayout({ magChromePx, phaseChromePx });
+  const [gridOuterSize, setGridOuterSize] = useState<number>(displaySize);
+
+  useEffect(() => {
+    const v = canvasGridRef.current?.getOuterSize?.();
+    if (typeof v === "number") setGridOuterSize(v);
+  }, [displaySize, selectedSize, showGrid]);
 
   // ===== FFT pipeline =====
-  const { isTransforming, transform, recompute, clearSpectra } = useFftPipeline({
-    selectedSize,
-    isDark,
-    settings: {
-      shift: settings.shift,
-      normalization: settings.normalization,
-      center: settings.center,
-      magScale: settings.magScale,
+  const { isTransforming, transform, recompute, clearSpectra, magStats } = useFftPipeline(
+    {
+      selectedSize,
+      isDark,
+      settings: {
+        shift: settings.shift,
+        normalization: settings.normalization,
+        center: settings.center,
+        magScale: settings.magScale,
+        magNormalize: settings.magNormalize,
+      },
+      gridRef: canvasGridRef,
+      phaseCanvasRef: phaseRef,
+      magCanvasRef: magRef,
+      phaseEmpty,
+      magEmpty,
+      canonicalizePixels: canonicalizePixelsForFFT,
     },
-    gridRef: canvasGridRef,
-    phaseCanvasRef: phaseRef,
-    magCanvasRef: magRef,
-    phaseEmpty,
-    magEmpty,
-    canonicalizePixels: canonicalizePixelsForFFT,
-  });
+  );
+
+  useEffect(() => {
+    // Always repaint the empty spectra backgrounds when theme flips,
+    // so they don't stay stuck from the initial (pre-hydration) draw.
+    clearSpectra();
+
+    // If the user already transformed, redraw the actual spectra too.
+    if (hasTransformed) {
+      recompute();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDark]);
+
+  useEffect(() => {
+    // Only recompute once the user has transformed at least once
+    if (!hasTransformed) return;
+    recompute();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    settings.normalization,
+    settings.shift,
+    settings.center,
+    settings.magScale,
+    settings.magNormalize,
+  ]);
 
   // ===== Handlers =====
   function handleTransform() {
@@ -132,12 +174,12 @@ export default function DrawPage() {
   }
 
   return (
-    <div className="px-6 sm:px-10 lg:px-14 py-4 space-y-10">
+    <div className="px-6 sm:px-10 lg:px-12 py-3 space-y-10">
       <div
         ref={setLayoutRef}
         className={[
           "w-full",
-          "grid gap-y-3 gap-x-6",
+          "grid gap-y-7 gap-x-6",
           "grid-cols-1",
           "lg:grid-cols-[auto_auto_minmax(0,1fr)]",
           "lg:grid-rows-[auto_auto]",
@@ -148,6 +190,7 @@ export default function DrawPage() {
       >
         {/* Draw canvas */}
         <div
+          ref={leftPanelRef}
           className="min-w-0 flex flex-col items-start"
           style={{ height: displaySize, width: displaySize }}
         >
@@ -164,13 +207,14 @@ export default function DrawPage() {
         <div
           ref={controlsWrapRef}
           className="flex justify-start lg:col-start-1 lg:row-start-2"
-          style={{ width: displaySize }}
+          style={{ width: gridOuterSize }}
         >
           <CanvasGridControls
             isDark={isDark}
             gridRef={canvasGridRef}
             handleClear={handleClear}
             displaySize={displaySize}
+            outerSize={gridOuterSize}
             size={selectedSize}
             setSize={setSelectedSize}
             brush={brushUI}
@@ -210,35 +254,44 @@ export default function DrawPage() {
           style={{ height: displaySize }}
         >
           <div ref={spectraPairRef} className="inline-flex items-center gap-6">
+            {/* Magnitude */}
             <div className="flex flex-col items-stretch">
+              <span className="invisible text-3xl">Invisible Spacer</span>
               <MagnitudeCanvas
                 selectedSize={selectedSize}
                 px={magPx}
                 background={magEmpty}
                 canvasRef={magRef}
+                keyContent={
+                  <MagnitudeKey
+                    key={settings.normalization}
+                    stats={magStats}
+                    isDark={isDark}
+                  />
+                }
+                frameInsetPx={SPEC_FRAME_INSET}
+                onChromePxChange={setMagChromePx}
                 onPointerDownHandle={(key, e) => startDrag(key, e)}
                 onPointerMoveHandle={moveDrag}
                 onPointerUpHandle={endDrag}
               />
-              <div className="invisible py-1.5 text-md sm:text-md lg:text-lg text-fg font-serif font-semibold">
-                Spacer
-              </div>
             </div>
 
+            {/* Phase */}
             <div className="flex flex-col items-stretch">
+              <span className="invisible text-3xl">Invisible Spacer</span>
               <PhaseCanvas
                 selectedSize={selectedSize}
                 px={phasePx}
                 background={"white"}
                 canvasRef={phaseRef}
+                keyContent={<PhaseKey />}
+                frameInsetPx={SPEC_FRAME_INSET}
+                onChromePxChange={setPhaseChromePx}
                 onPointerDownHandle={(key, e) => startDrag(key, e)}
                 onPointerMoveHandle={moveDrag}
                 onPointerUpHandle={endDrag}
               />
-
-              <div className="mt-2 w-full px-1">
-                <PhaseKey />
-              </div>
             </div>
           </div>
         </div>

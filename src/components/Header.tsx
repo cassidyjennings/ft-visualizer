@@ -7,9 +7,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSettings } from "@/lib/settings/SettingsContext";
 import type {
   CenterConvention,
-  FFTNormalization,
-  MagScale,
-  ShiftConvention,
+  DisplayColoring,
+  MagNormalize,
 } from "@/lib/settings/types";
 
 const nav = [{ href: "/draw", label: "2D Draw" }];
@@ -94,20 +93,13 @@ export default function Header() {
     return () => window.removeEventListener("mousedown", onDown);
   }, [dropdownOpen, mobileOpen]);
 
-  const selectClass =
-    "mt-1 w-full rounded-md border border-border/10 bg-muted px-2 py-1.5 text-sm text-fg outline-none " +
-    "focus:border-border/25 focus:ring-1 focus:ring-fg/15";
-
-  const labelClass = "text-xs font-medium text-fg/70";
-
   const quick = useMemo(
     () => ({
+      coloring: settings.coloring,
       center: settings.center,
-      shift: settings.shift,
-      magScale: settings.magScale,
-      normalization: settings.normalization,
+      magNormalize: settings.magNormalize,
     }),
-    [settings.center, settings.shift, settings.magScale, settings.normalization],
+    [settings.coloring, settings.center, settings.magNormalize],
   );
 
   const isSettingsPage = pathname === "/settings";
@@ -179,7 +171,7 @@ export default function Header() {
               />
             </button>
 
-            {dropdownOpen && (
+            {/* {dropdownOpen && (
               <div
                 role="menu"
                 className="absolute right-0 top-11 z-50 w-85 rounded-md border border-fg/10 bg-bg p-4 shadow-lg "
@@ -264,6 +256,123 @@ export default function Header() {
                     >
                       Open full settings
                     </Link>
+                  </div>
+                </div>
+              </div>
+            )} */}
+            {dropdownOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-11 z-50 w-70 rounded-2xl border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur"
+              >
+                {/* header */}
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-fg">Quick settings</div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-fg/60 hover:bg-muted hover:text-fg transition"
+                    aria-label="Close"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {/* Coloring */}
+                  <div className="rounded-xl border border-border/30 bg-bg/40 p-3">
+                    <div className="text-xs font-medium text-fg/70">Theme</div>
+                    <select
+                      className="mt-2 w-full rounded-lg border border-border/40 bg-muted px-3 py-2 text-sm text-fg outline-none focus:border-border/70 focus:ring-2 focus:ring-brand/15"
+                      value={quick.coloring}
+                      onChange={(e) =>
+                        setSettings((s) => ({
+                          ...s,
+                          coloring: e.target.value as DisplayColoring,
+                        }))
+                      }
+                    >
+                      <option value="system">System</option>
+                      <option value="dark">Dark</option>
+                      <option value="light">Light</option>
+                    </select>
+                  </div>
+
+                  {/* Canvas Origin */}
+                  <div className="rounded-xl border border-border/30 bg-bg/40 p-3">
+                    <div className="text-xs font-medium text-fg/70">Canvas origin</div>
+                    <select
+                      className="mt-2 w-full rounded-lg border border-border/40 bg-muted px-3 py-2 text-sm text-fg outline-none focus:border-border/70 focus:ring-2 focus:ring-brand/15"
+                      value={quick.center}
+                      onChange={(e) =>
+                        setSettings((s) => ({
+                          ...s,
+                          center: e.target.value as CenterConvention,
+                        }))
+                      }
+                    >
+                      <option value="centerPixel">Bottom-right center pixel</option>
+                      <option value="centerBetween">Between middle pixels</option>
+                      <option value="topLeft">Top-left pixel</option>
+                    </select>
+                  </div>
+
+                  {/* Mag Normalize */}
+                  <div className="rounded-xl border border-border/30 bg-bg/40 p-3">
+                    <div className="text-xs font-medium text-fg/70">
+                      Magnitude normalize
+                    </div>
+                    <select
+                      className="mt-2 w-full rounded-lg border border-border/40 bg-muted px-3 py-2 text-sm text-fg outline-none focus:border-border/70 focus:ring-2 focus:ring-brand/15"
+                      value={quick.magNormalize}
+                      onChange={(e) =>
+                        setSettings((s) => ({
+                          ...s,
+                          magNormalize: e.target.value as MagNormalize,
+                        }))
+                      }
+                    >
+                      <option value="max">Normalize to max</option>
+                      <option value="none">No normalization</option>
+                    </select>
+                  </div>
+
+                  {/* footer buttons */}
+                  <div className="mt-1 flex items-center gap-2">
+                    <Link
+                      href="/settings"
+                      className="flex-1 rounded-xl border border-border/40 bg-muted px-3 py-2 text-center text-sm text-fg/80 hover:text-fg hover:bg-muted/80 transition"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      Full settings
+                    </Link>
+
+                    <button
+                      type="button"
+                      className="rounded-xl bg-brand px-3 py-2 text-sm text-header-txt hover:opacity-90 transition"
+                      onClick={() => {
+                        setSettings((s) => ({
+                          ...s,
+                          coloring: "system",
+                          center: "centerBetween",
+                          magNormalize: "max",
+                        }));
+                      }}
+                      title="Reset quick settings"
+                    >
+                      Reset
+                    </button>
                   </div>
                 </div>
               </div>

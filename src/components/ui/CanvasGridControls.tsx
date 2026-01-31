@@ -1,6 +1,6 @@
 "use client";
 
-import React, { forwardRef, useMemo } from "react";
+import React, { forwardRef, useEffect, useMemo, useState } from "react";
 
 import type { BrushSettings } from "@/lib/image/brush";
 import type { CanvasGridHandle } from "@/components/canvases/CanvasGrid";
@@ -22,12 +22,19 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+function format01(v255: number) {
+  const v = v255 / 255;
+  if (v === 0 || v === 1) return String(v);
+  return v.toFixed(3);
+}
+
 type Props = {
   isDark: boolean;
 
   gridRef: React.RefObject<CanvasGridHandle | null>;
   handleClear: () => void;
   displaySize: number;
+  outerSize: number;
 
   allowedSizes?: number[];
   size: number;
@@ -46,7 +53,7 @@ function btnBase(active?: boolean) {
     "border rounded",
     "hover:bg-fg/10 active:scale-95 transition",
     "select-none",
-    active ? "bg-fg/15 border-fg/40" : "bg-card border-fg/20",
+    active ? "bg-fg/15 border-border" : "bg-card border-border/80",
   ].join(" ");
 }
 
@@ -68,6 +75,7 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
     gridRef,
     handleClear,
     displaySize,
+    outerSize,
     allowedSizes = [2, 4, 8, 16, 32, 64],
     size,
     setSize,
@@ -81,15 +89,19 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
   const isErase = brush.mode === "erase";
   const reverseForLight = !isDark;
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const ui = useMemo(() => {
     // Scale derived from canvas display size
-    const scale = clamp(displaySize / 560, 0.72, 1.0);
+    const scale = clamp(displaySize / 560, 0.7, 0.95);
     // UI sizes derived from scale
-    const controlH = Math.round(clamp(36 * scale, 28, 40));
-    const iconPx = Math.round(controlH * 0.62);
-    const btnPx = Math.round(clamp(12 * scale, 8, 12));
-    const togglePadPx = Math.round(clamp(10 * scale, 8, 12));
-    const fontPx = Math.round(clamp(16 * scale, 12, 16));
+    const controlH = Math.round(clamp(34 * scale, 26, 36));
+    const iconPx = Math.round(controlH * 0.6);
+    const btnPx = Math.round(clamp(11 * scale, 8, 11));
+    const togglePadPx = Math.round(clamp(9 * scale, 7, 10));
+    const fontPx = Math.round(clamp(15 * scale, 12, 15));
+
     const sliderMaxW = Math.round(clamp(440 * scale, 200, 440));
     const shapeW = Math.round(clamp(420 * scale, 220, 420));
 
@@ -108,7 +120,7 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
       };
 
   const rootStyle: CSSVars = {
-    maxWidth: displaySize,
+    maxWidth: outerSize,
     fontSize: `${ui.fontPx}px`,
     "--ui-font": `${ui.fontPx}px`,
     "--control-h": `${ui.controlH}px`,
@@ -121,10 +133,10 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
 
   const labelCls = "font-medium";
   const selectCls = "border border-border rounded bg-card px-2";
+  const rangeCls = "w-full h-2 rounded-lg appearance-none bg-transparent min-w-0";
 
   return (
     <div ref={ref} className="mt-3 w-full min-w-0" style={rootStyle}>
-      {/* Panel */}
       <div
         className={[
           "min-w-0 shadow",
@@ -137,20 +149,13 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
         <div
           className={[
             "grid min-w-0",
-            "gap-2.5",
-            "grid-cols-1",
+            "grid-cols-1 gap-2",
             "md:grid-cols-[0.65fr_1.5fr_0.6fr]",
+            "md:gap-0 md:divide-x md:divide-border",
           ].join(" ")}
         >
           {/* ================= LEFT: GRID ================= */}
-          <section
-            className={[
-              "min-w-0",
-              "grid gap-2",
-              "md:pr-2.5",
-              "md:border-r md:border-border",
-            ].join(" ")}
-          >
+          <section className="min-w-0 grid gap-2 md:px-2">
             {/* Size (row 1) */}
             <div className="min-w-0 grid gap-2 ">
               <span className="font-semibold">Grid</span>
@@ -200,21 +205,14 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
           </section>
 
           {/* ================= MIDDLE: BRUSH ================= */}
-          <section
-            className={[
-              "min-w-0",
-              "grid gap-3",
-              "md:px-2",
-              "md:border-r md:border-border",
-            ].join(" ")}
-          >
+          <section className="min-w-0 grid gap-2 md:px-2">
             <div className="min-w-0 grid gap-2">
               <span className="font-semibold leading-none">Brush</span>
 
               {/* Top row: Value + Radius side-by-side */}
               <div className="grid grid-cols-2 gap-3 min-w-0">
                 {/* Brush Value */}
-                <div className="min-w-0 grid gap-1.5">
+                <div className="min-w-0 grid gap-2">
                   <div
                     className={[
                       "flex items-center justify-between",
@@ -224,7 +222,9 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
                     <span className="text-xs font-medium text-fg/70 leading-none">
                       Value
                     </span>
-                    <span className="tabular-nums text-xs">{brush.value}</span>
+                    <span className="tabular-nums text-xs">
+                      {mounted ? format01(brush.value) : "0"}
+                    </span>
                   </div>
 
                   <div
@@ -242,7 +242,8 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
                         onBrushChange({ ...brush, value: Number(e.target.value) })
                       }
                       className={[
-                        "gray-slider w-full h-2 rounded-lg appearance-none min-w-0",
+                        "gray-slider",
+                        rangeCls,
                         isErase ? "cursor-not-allowed opacity-40" : "cursor-pointer",
                       ].join(" ")}
                       style={sliderStyle}
@@ -271,7 +272,7 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
                       onChange={(e) =>
                         onBrushChange({ ...brush, radius: Number(e.target.value) })
                       }
-                      className="w-full cursor-pointer min-w-0"
+                      className="w-full min-w-0 cursor-pointer"
                     />
                   </div>
                 </div>
@@ -279,66 +280,13 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
             </div>
 
             {/* Bottom row: Brush Shape */}
-            <div className="min-w-0 grid gap-1.5">
+            <div className="min-w-0 grid gap-2">
               <span className="text-xs font-medium text-fg/70 leading-none">Shape</span>
-              {/* <ToggleGroup height={ui.controlH} className="w-full min-w-0 flex-wrap">
-                <ToggleItem
-                  grow
-                  active={brush.shape === "circle"}
-                  padX={ui.togglePadPx}
-                  onClick={() => onBrushChange({ ...brush, shape: "circle" })}
-                  title="Circle"
-                  isFirst
-                >
-                  <CircleIcon size={ui.iconPx} />
-                </ToggleItem>
-                <ToggleItem
-                  grow
-                  active={brush.shape === "square"}
-                  padX={ui.togglePadPx}
-                  onClick={() => onBrushChange({ ...brush, shape: "circle" })}
-                  title="Square"
-                >
-                  <SquareIcon size={ui.iconPx} />
-                </ToggleItem>
-                <ToggleItem
-                  grow
-                  active={brush.shape === "diamond"}
-                  padX={ui.togglePadPx}
-                  onClick={() => onBrushChange({ ...brush, shape: "circle" })}
-                  title="Diamond"
-                >
-                  <DiamondIcon size={ui.iconPx} />
-                </ToggleItem>
-                <ToggleItem
-                  grow
-                  active={brush.shape === "cross"}
-                  padX={ui.togglePadPx}
-                  onClick={() => onBrushChange({ ...brush, shape: "circle" })}
-                  title="Cross"
-                >
-                  <CrossIcon size={ui.iconPx} />
-                </ToggleItem>
-                <ToggleItem
-                  grow
-                  active={brush.shape === "hline"}
-                  padX={ui.togglePadPx}
-                  onClick={() => onBrushChange({ ...brush, shape: "circle" })}
-                  title="Horizontal line"
-                >
-                  <HLineIcon size={ui.iconPx} />
-                </ToggleItem>
-                <ToggleItem
-                  grow
-                  active={brush.shape === "vline"}
-                  padX={ui.togglePadPx}
-                  onClick={() => onBrushChange({ ...brush, shape: "circle" })}
-                  title="Vertical line"
-                >
-                  <VLineIcon size={ui.iconPx} />
-                </ToggleItem>
-              </ToggleGroup> */}
-              <ToggleGroup height={ui.controlH} className="w-full min-w-0 flex-wrap">
+
+              <ToggleGroup
+                height={ui.controlH}
+                className="w-full min-w-0 grid grid-cols-3 sm:grid-cols-6"
+              >
                 <ToggleItem
                   grow
                   active={brush.shape === "circle"}
@@ -404,13 +352,13 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
           </section>
 
           {/* ================= RIGHT: ACTIONS ================= */}
-          <section className="min-w-0 grid md:pl-2.5">
+          <section className="min-w-0 grid gap-2 md:px-2">
             {/* Header */}
-            <div className="min-w-0 grid gap-0">
+            <div className="min-w-0 grid gap-2">
               <span className={labelCls}>Actions</span>
 
               {/* Top row: Draw vs Erase */}
-              <div className="min-w-0 grid gap-0">
+              <div className="min-w-0 grid">
                 <ToggleGroup height={ui.controlH} className="w-full min-w-0">
                   <ToggleItem
                     grow
@@ -436,7 +384,7 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
             </div>
 
             {/* Bottom row: Undo / Clear */}
-            <div className="min-w-0 grid gap-0">
+            <div className="min-w-0 grid gap-2">
               <button
                 type="button"
                 className={btnBase(false)}

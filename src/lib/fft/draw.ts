@@ -6,6 +6,15 @@ export type FFTState = {
   imag: Float32Array;
 };
 
+export type MagNorm = "max" | "none";
+
+export type MagnitudeStats = {
+  maxV: number; // max of the *display space* values (mag or log1p(mag))
+  scale: "linear" | "log";
+  normalize: MagNorm;
+  n: number; // width of canvas
+};
+
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
@@ -33,20 +42,23 @@ export function drawMagnitude(
   width: number,
   height: number,
   scale: "linear" | "log",
+  normalize: MagNorm,
   isDark: boolean,
-) {
-  if (!canvas) return;
+): MagnitudeStats | null {
+  if (!canvas) return null;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  if (!ctx) return null;
 
   const img = ctx.createImageData(width, height);
 
+  // Compute display-space values and max (only needed for "max" normalization
+  // and for the key labels).
   let maxV = 0;
   const vals = new Float32Array(width * height);
 
   for (let i = 0; i < vals.length; i++) {
     const mag = Math.sqrt(real[i] * real[i] + imag[i] * imag[i]);
-    const v = scale === "log" ? Math.log1p(mag) : mag;
+    const v = scale === "log" ? Math.log1p(mag) : mag; // display-space value
     vals[i] = v;
     if (v > maxV) maxV = v;
   }
@@ -55,7 +67,16 @@ export function drawMagnitude(
   const constantField = maxV <= eps;
 
   for (let i = 0; i < vals.length; i++) {
-    const t = constantField ? 0 : clamp(vals[i] / maxV, 0, 1);
+    let t: number;
+
+    if (normalize === "max") {
+      t = constantField ? 0 : clamp(vals[i] / maxV, 0, 1);
+    } else {
+      // normalize === "none": no rescaling. We assume vals[i] is already meaningful in [0,1].
+      // (If not, it will clip — which is exactly what "none" should do.)
+      t = clamp(vals[i], 0, 1);
+    }
+
     let g = Math.floor(255 * t);
     if (!isDark) g = 255 - g;
 
@@ -67,6 +88,7 @@ export function drawMagnitude(
   }
 
   ctx.putImageData(img, 0, 0);
+  return { maxV, scale, normalize, n: width };
 }
 
 export function drawPhase(
