@@ -381,8 +381,6 @@ export function useSpectraLayout(params?: {
       specPairGapPx: Math.floor(specPairGapPx),
     };
 
-    // Nice compact readout
-    // eslint-disable-next-line no-console
     console.table(info);
   }, [
     layoutRect.width,

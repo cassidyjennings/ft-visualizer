@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import RegalCanvasFrame from "@/components/ui/RegalCanvasFrame";
+import RegalCanvasFrame from "@/components/icons/RegalCanvasFrame";
 
 import { ImageModel, createEmptyImage } from "@/lib/image/model";
 import { BrushSettings, strokeLine } from "@/lib/image/brush";
@@ -444,7 +444,7 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
 
   return (
     <div className="relative inline-block" style={{ width: outerPx, height: outerPx }}>
-      {/* Frame behind (does NOT block pixels) */}
+      {/* Frame behind */}
       {showFrame && (
         <div className="absolute inset-0 pointer-events-none">
           <RegalCanvasFrame

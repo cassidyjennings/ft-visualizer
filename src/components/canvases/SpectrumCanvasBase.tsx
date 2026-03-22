@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import RegalCanvasFrame from "@/components/ui/RegalCanvasFrame";
+import RegalCanvasFrame from "@/components/icons/RegalCanvasFrame";
 
 export type SpectrumKey = "mag" | "phase";
 
@@ -76,7 +76,7 @@ export default function SpectrumCanvasBase({
         style={{
           width: outerPx,
           height: outerPx,
-          clipPath: "inset(-1000px 0px -1000px 0px)", // clip horizontally, allow vertical overlays
+          clipPath: "inset(-1000px 0px -1000px 0px)",
         }}
       >
         {/* Title overlay */}
@@ -93,15 +93,15 @@ export default function SpectrumCanvasBase({
           </div>
         </div>
 
-        {/* Square fills wrapper (outer chrome, includes frame) */}
+        {/* Square fills wrapper */}
         <div className="absolute inset-0 overflow-visible">
-          {/* Frame behind (does NOT block pointer events) */}
+          {/* Frame behind */}
           {inset > 0 ? (
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
               <RegalCanvasFrame innerSize={innerPx} frame={Math.max(1, inset)} pad={0} />
             </div>
           ) : null}
-          {/* Inset content area (the window) */}
+          {/* Inset content area */}
           <div
             className="absolute z-0"
             style={{
@@ -109,12 +109,12 @@ export default function SpectrumCanvasBase({
               top: inset,
               width: innerPx,
               height: innerPx,
-              background, // keep background behind canvas consistent
+              background,
             }}
           >
             {canvas}
           </div>
-          {/* Resize handle: keep it on the OUTER box */}
+          {/* Resize handle */}
           <div
             className="absolute z-20 bottom-1 right-1 h-5 w-5 rounded cursor-se-resize touch-none flex items-center justify-center"
             title="Drag to resize"

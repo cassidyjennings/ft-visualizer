@@ -50,7 +50,7 @@ type Props = {
 function btnBase(active?: boolean) {
   return [
     "inline-flex items-center justify-center",
-    "border rounded",
+    "border rounded ",
     "hover:bg-fg/10 active:scale-95 transition",
     "select-none",
     active ? "bg-fg/15 border-border" : "bg-card border-border/80",
@@ -156,10 +156,10 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
         >
           {/* ================= LEFT: GRID ================= */}
           <section className="min-w-0 grid gap-2 md:px-2">
-            {/* Size (row 1) */}
             <div className="min-w-0 grid gap-2 ">
               <span className="font-semibold">Grid</span>
 
+              {/* Grid Size (row 1) */}
               <div className="grid gap-1">
                 <span className="text-fg/70 text-xs font-medium">Grid Size</span>
                 <select
@@ -177,10 +177,14 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
               </div>
             </div>
 
-            {/* Grid lines (row 2) */}
+            {/* Grid Lines (row 2) */}
             <div className="min-w-0 grid gap-1">
               <span className="text-fg/70 text-xs font-medium">Grid Lines</span>
-              <ToggleGroup height={ui.controlH} className="w-full min-w-0">
+              <ToggleGroup
+                height={ui.controlH}
+                className="w-full min-w-0"
+                borderColor="border"
+              >
                 <ToggleItem
                   grow
                   active={showGrid}
@@ -208,10 +212,8 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
           <section className="min-w-0 grid gap-2 md:px-2">
             <div className="min-w-0 grid gap-2">
               <span className="font-semibold leading-none">Brush</span>
-
-              {/* Top row: Value + Radius side-by-side */}
               <div className="grid grid-cols-2 gap-3 min-w-0">
-                {/* Brush Value */}
+                {/* Brush Value (row 1) */}
                 <div className="min-w-0 grid gap-2">
                   <div
                     className={[
@@ -251,7 +253,7 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
                   </div>
                 </div>
 
-                {/* Brush Radius */}
+                {/* Brush Radius (row 1) */}
                 <div className="min-w-0 grid gap-1.5">
                   <div className="flex items-center justify-between min-w-0">
                     <span className="text-xs font-medium text-fg/70 leading-none">
@@ -279,13 +281,14 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
               </div>
             </div>
 
-            {/* Bottom row: Brush Shape */}
+            {/* Brush Shape (row 2) */}
             <div className="min-w-0 grid gap-2">
               <span className="text-xs font-medium text-fg/70 leading-none">Shape</span>
 
               <ToggleGroup
                 height={ui.controlH}
                 className="w-full min-w-0 grid grid-cols-3 sm:grid-cols-6"
+                borderColor="border"
               >
                 <ToggleItem
                   grow
@@ -353,13 +356,16 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
 
           {/* ================= RIGHT: ACTIONS ================= */}
           <section className="min-w-0 grid gap-2 md:px-2">
-            {/* Header */}
             <div className="min-w-0 grid gap-2">
               <span className={labelCls}>Actions</span>
 
-              {/* Top row: Draw vs Erase */}
+              {/* Brush Mode (row 1) */}
               <div className="min-w-0 grid">
-                <ToggleGroup height={ui.controlH} className="w-full min-w-0">
+                <ToggleGroup
+                  height={ui.controlH}
+                  className="w-full min-w-0"
+                  borderColor="border"
+                >
                   <ToggleItem
                     grow
                     active={brush.mode === "draw"}
@@ -383,7 +389,7 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
               </div>
             </div>
 
-            {/* Bottom row: Undo / Clear */}
+            {/* Undo + Clear (row 2) */}
             <div className="min-w-0 grid gap-2">
               <button
                 type="button"
@@ -393,6 +399,7 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
               >
                 Undo
               </button>
+
               <button
                 type="button"
                 className={btnBase(false)}

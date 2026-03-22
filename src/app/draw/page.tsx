@@ -5,11 +5,11 @@ import { useSettings } from "@/lib/settings/SettingsContext";
 
 import CanvasGrid, { type CanvasGridHandle } from "@/components/canvases/CanvasGrid";
 import CanvasGridControls from "@/components/ui/CanvasGridControls";
-import MagnitudeCanvas from "@/components/canvases/MagnitudeCanvas";
-import PhaseCanvas from "@/components/canvases/PhaseCanvas";
+import MagnitudeCanvas from "@/components/canvases/magnitude/MagnitudeCanvas";
+import PhaseCanvas from "@/components/canvases/phase/PhaseCanvas";
 import TransformButton from "@/components/ui/TransformButton";
-import PhaseKey from "@/components/ui/PhaseKey";
-import MagnitudeKey from "@/components/ui/MagnitudeKey";
+import PhaseKey from "@/components/canvases/phase/PhaseKey";
+import MagnitudeKey from "@/components/canvases/magnitude/MagnitudeKey";
 
 import type { BrushSettings } from "@/lib/image/brush";
 import { useEffectiveColoring } from "@/lib/settings/useEffectiveColoring";
@@ -229,6 +229,9 @@ export default function DrawPage() {
           ref={arrowRef}
           className="flex flex-col items-center lg:col-start-2 lg:row-start-1 lg:self-center"
         >
+          <div className="mt-2 max-w-[18rem] text-center text-sm text-fg/70 invisible">
+            Spacer
+          </div>
           <div className="mt-2 max-w-[18rem] text-center text-sm text-fg/70 invisible">
             Spacer
           </div>

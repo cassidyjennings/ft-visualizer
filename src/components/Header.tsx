@@ -10,6 +10,10 @@ import type {
   DisplayColoring,
   MagNormalize,
 } from "@/lib/settings/types";
+import { ToggleGroup, ToggleItem } from "./ui/ToggleGroup";
+import { CheckboxOption } from "./ui/CheckboxOption";
+import { DropdownSelect } from "./ui/DropdownSelect";
+import { Sun, Moon } from "lucide-react";
 
 const nav = [{ href: "/draw", label: "2D Draw" }];
 
@@ -171,188 +175,24 @@ export default function Header() {
               />
             </button>
 
-            {/* {dropdownOpen && (
-              <div
-                role="menu"
-                className="absolute right-0 top-11 z-50 w-85 rounded-md border border-fg/10 bg-bg p-4 shadow-lg "
-              >
-                <div className="mt-4 grid grid-cols-1 gap-3">
-                  <div>
-                    <div className={labelClass}>Canvas Origin</div>
-                    <select
-                      className={selectClass}
-                      value={quick.center}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          center: e.target.value as CenterConvention,
-                        }))
-                      }
-                    >
-                      <option value="centerPixel">Bottom-right center pixel</option>
-                      <option value="centerBetween">Between middle pixels</option>
-                      <option value="topLeft">Top-left pixel</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <div className={labelClass}>DFT shift</div>
-                    <select
-                      className={selectClass}
-                      value={quick.shift}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          shift: e.target.value as ShiftConvention,
-                        }))
-                      }
-                    >
-                      <option value="shifted">Shifted (DC centered)</option>
-                      <option value="unshifted">Unshifted (DC at top-left)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <div className={labelClass}>Magnitude Scale</div>
-                    <select
-                      className={selectClass}
-                      value={quick.magScale}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          magScale: e.target.value as MagScale,
-                        }))
-                      }
-                    >
-                      <option value="linear">Linear</option>
-                      <option value="log">Log (log1p)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <div className={labelClass}>Normalization</div>
-                    <select
-                      className={selectClass}
-                      value={quick.normalization}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          normalization: e.target.value as FFTNormalization,
-                        }))
-                      }
-                    >
-                      <option value="forward">Forward (1/N)</option>
-                      <option value="inverse">Inverse (1/N)</option>
-                      <option value="unitary">Unitary (1/√N on both)</option>
-                      <option value="none">None</option>
-                    </select>
-                  </div>
-
-                  <div className="pt-2">
-                    <Link
-                      href="/settings"
-                      className="block w-full rounded-md bg-fg/5 px-3 py-2 text-center text-sm text-fg/80 hover:bg-fg/10 hover:text-fg transition"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      Open full settings
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )} */}
             {dropdownOpen && (
-              <div
-                role="menu"
-                className="absolute right-0 top-11 z-50 w-70 rounded-2xl border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur"
-              >
-                {/* header */}
-                <div className="mb-3 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-fg">Quick settings</div>
-                  </div>
+              <div role="menu" className="absolute right-0 top-11 z-50 w-82">
+                <div
+                  className={[
+                    "min-w-0 shadow-lg",
+                    "rounded-xl border border-border",
+                    "bg-card",
+                    "p-2 sm:p-3",
+                  ].join(" ")}
+                >
+                  {/* Header row */}
+                  <div className="flex items-center justify-between pb-2">
+                    <span className="font-semibold leading-none">Quick Settings</span>
 
-                  <button
-                    type="button"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-fg/60 hover:bg-muted hover:text-fg transition"
-                    aria-label="Close"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M6 6l12 12M18 6L6 18" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3">
-                  {/* Coloring */}
-                  <div className="rounded-xl border border-border/30 bg-bg/40 p-3">
-                    <div className="text-xs font-medium text-fg/70">Theme</div>
-                    <select
-                      className="mt-2 w-full rounded-lg border border-border/40 bg-muted px-3 py-2 text-sm text-fg outline-none focus:border-border/70 focus:ring-2 focus:ring-brand/15"
-                      value={quick.coloring}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          coloring: e.target.value as DisplayColoring,
-                        }))
-                      }
-                    >
-                      <option value="system">System</option>
-                      <option value="dark">Dark</option>
-                      <option value="light">Light</option>
-                    </select>
-                  </div>
-
-                  {/* Canvas Origin */}
-                  <div className="rounded-xl border border-border/30 bg-bg/40 p-3">
-                    <div className="text-xs font-medium text-fg/70">Canvas origin</div>
-                    <select
-                      className="mt-2 w-full rounded-lg border border-border/40 bg-muted px-3 py-2 text-sm text-fg outline-none focus:border-border/70 focus:ring-2 focus:ring-brand/15"
-                      value={quick.center}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          center: e.target.value as CenterConvention,
-                        }))
-                      }
-                    >
-                      <option value="centerPixel">Bottom-right center pixel</option>
-                      <option value="centerBetween">Between middle pixels</option>
-                      <option value="topLeft">Top-left pixel</option>
-                    </select>
-                  </div>
-
-                  {/* Mag Normalize */}
-                  <div className="rounded-xl border border-border/30 bg-bg/40 p-3">
-                    <div className="text-xs font-medium text-fg/70">
-                      Magnitude normalize
-                    </div>
-                    <select
-                      className="mt-2 w-full rounded-lg border border-border/40 bg-muted px-3 py-2 text-sm text-fg outline-none focus:border-border/70 focus:ring-2 focus:ring-brand/15"
-                      value={quick.magNormalize}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          magNormalize: e.target.value as MagNormalize,
-                        }))
-                      }
-                    >
-                      <option value="max">Normalize to max</option>
-                      <option value="none">No normalization</option>
-                    </select>
-                  </div>
-
-                  {/* footer buttons */}
-                  <div className="mt-1 flex items-center gap-2">
                     <Link
                       href="/settings"
-                      className="flex-1 rounded-xl border border-border/40 bg-muted px-3 py-2 text-center text-sm text-fg/80 hover:text-fg hover:bg-muted/80 transition"
+                      className="inline-flex items-center shadow-sm justify-center border border-border/80 rounded bg-card hover:bg-fg/10 active:scale-95 transition select-none px-2"
+                      style={{ height: 34 }}
                       onClick={() => setDropdownOpen(false)}
                     >
                       Full settings
@@ -360,19 +200,127 @@ export default function Header() {
 
                     <button
                       type="button"
-                      className="rounded-xl bg-brand px-3 py-2 text-sm text-header-txt hover:opacity-90 transition"
-                      onClick={() => {
+                      className="inline-flex h-8 w-8 shadow-sm items-center justify-center border border-border/80 rounded bg-card hover:bg-fg/10 active:scale-95 transition select-none"
+                      aria-label="Close"
+                      onClick={() => setDropdownOpen(false)}
+                      title="Close"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M6 6l12 12M18 6L6 18" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="grid gap-2">
+                    {/* Canvas Origin */}
+                    <DropdownSelect
+                      label="Canvas Origin"
+                      className="grid gap-1 shadow-sm border border-border/60 rounded-xl bg-card w-full px-3 py-2"
+                      value={quick.center}
+                      onChange={(v) =>
                         setSettings((s) => ({
                           ...s,
-                          coloring: "system",
-                          center: "centerBetween",
-                          magNormalize: "max",
-                        }));
-                      }}
-                      title="Reset quick settings"
-                    >
-                      Reset
-                    </button>
+                          center: v as CenterConvention,
+                        }))
+                      }
+                      options={[
+                        { value: "centerPixel", label: "Bottom-right center pixel" },
+                        { value: "centerBetween", label: "Between middle pixels" },
+                        { value: "topLeft", label: "Top-left pixel" },
+                      ]}
+                    />
+
+                    {/* Mag Normalize */}
+                    <div className="grid gap-1 shadow-sm border border-border/60 rounded-xl bg-card w-full px-3 py-2">
+                      <CheckboxOption
+                        id="magnitude-normalization"
+                        checked={quick.magNormalize === "max"}
+                        onCheckedChange={() => {
+                          const next = quick.magNormalize === "max" ? "none" : "max";
+                          setSettings((s) => ({
+                            ...s,
+                            magNormalize: next as MagNormalize,
+                          }));
+                        }}
+                        label="Display normalized DFT magnitude."
+                        selectedPreview="DFT magnitude is normalized to its maximum."
+                        unselectedPreview="DFT magnitude is unnormalized."
+                      />
+                    </div>
+
+                    <div className="pt-1 grid grid-cols-3 gap-2">
+                      <ToggleGroup
+                        height={34}
+                        className="w-full min-w-0 col-span-2 bg-card shadow-sm "
+                      >
+                        <ToggleItem
+                          active={quick.coloring === "light"}
+                          onClick={() =>
+                            setSettings((s) => ({
+                              ...s,
+                              coloring: "light" as DisplayColoring,
+                            }))
+                          }
+                          title="Set theme to light."
+                          isFirst
+                          className="w-[25%]"
+                        >
+                          <Sun className="h-6 w-6" />
+                        </ToggleItem>
+                        <ToggleItem
+                          active={quick.coloring === "dark"}
+                          onClick={() =>
+                            setSettings((s) => ({
+                              ...s,
+                              coloring: "dark" as DisplayColoring,
+                            }))
+                          }
+                          title="Set theme to dark."
+                          className="w-[25%]"
+                        >
+                          <Moon className="h-6 w-6" />
+                        </ToggleItem>
+                        <ToggleItem
+                          active={quick.coloring === "system"}
+                          onClick={() =>
+                            setSettings((s) => ({
+                              ...s,
+                              coloring: "system" as DisplayColoring,
+                            }))
+                          }
+                          title="Set theme to OS default."
+                          className="w-[50%] text-sm"
+                          padX={0}
+                        >
+                          OS Default
+                        </ToggleItem>
+                      </ToggleGroup>
+
+                      <button
+                        type="button"
+                        className="inline-flex items-center shadow-sm justify-center border border-border/80 rounded bg-brand-2 text-brand-contrast hover:bg-brand active:scale-95 transition select-none px-2"
+                        style={{ height: 34 }}
+                        onClick={() => {
+                          setSettings((s) => ({
+                            ...s,
+                            coloring: "system",
+                            center: "centerBetween",
+                            magNormalize: "max",
+                          }));
+                        }}
+                        title="Reset quick settings"
+                      >
+                        Reset
+                      </button>
+                    </div>
+
+                    <div className="pt-1 grid grid-cols-1"></div>
                   </div>
                 </div>
               </div>
@@ -454,10 +402,6 @@ export default function Header() {
               >
                 Settings
               </Link>
-            </div>
-
-            <div className="mt-6 border-t border-fg/10 pt-4 text-xs text-fg/60">
-              Tip: use the gear icon for quick settings.
             </div>
           </div>
         </div>
