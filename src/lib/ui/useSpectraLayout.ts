@@ -173,7 +173,13 @@ export function useSpectraLayout(params?: {
   const [gridColGapPx, setGridColGapPx] = useState(0);
   const [gridRowGapPx, setGridRowGapPx] = useState(0);
   const [specPairGapPx, setSpecPairGapPx] = useState(0);
-  const [desktopControlsHeight, setDesktopControlsHeight] = useState(0);
+  const [desktopSnapshot, setDesktopSnapshot] = useState({
+    layoutWidth: 0,
+    layoutTop: 0,
+    arrowWidth: 0,
+    viewportHeight: 0,
+    controlsHeight: 0,
+  });
 
   useEffect(() => {
     const update = () => {
@@ -220,11 +226,62 @@ export function useSpectraLayout(params?: {
   const rawControlsHeight = Math.floor(controlsRect.height || 0);
   const rawStackMain = rawLayoutWidth < STACK_MAIN_BREAKPOINT;
   const hasViewportSnapshot = viewport.frameW > 0 && viewport.frameH > 0;
+  const hasDesktopSnapshot = desktopSnapshot.layoutWidth > 0;
   const hasCommittedLayoutForResize =
     committedLayout.layoutWidth > 0 &&
     committedLayout.resizeVersion === viewport.resizeVersion;
   const shouldHoldDesktopCommit =
-    !rawStackMain && desktopControlsHeight > 0 && rawControlsHeight > desktopControlsHeight;
+    !rawStackMain &&
+    hasDesktopSnapshot &&
+    rawControlsHeight > desktopSnapshot.controlsHeight;
+
+  useEffect(() => {
+    if (
+      rawStackMain ||
+      rawLayoutWidth <= 0 ||
+      rawArrowWidth <= 0 ||
+      rawControlsHeight <= 0 ||
+      rawLayoutTop <= 0 ||
+      shouldHoldDesktopCommit
+    ) {
+      return;
+    }
+
+    const nextViewportHeight = Math.floor(viewport.h);
+    const frame = window.requestAnimationFrame(() => {
+      setDesktopSnapshot((prev) => {
+        if (
+          prev.layoutWidth === rawLayoutWidth &&
+          prev.layoutTop === rawLayoutTop &&
+          prev.arrowWidth === rawArrowWidth &&
+          prev.viewportHeight === nextViewportHeight &&
+          prev.controlsHeight === rawControlsHeight
+        ) {
+          return prev;
+        }
+
+        return {
+          layoutWidth: rawLayoutWidth,
+          layoutTop: rawLayoutTop,
+          arrowWidth: rawArrowWidth,
+          viewportHeight: nextViewportHeight,
+          controlsHeight: rawControlsHeight,
+        };
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [
+    rawArrowWidth,
+    rawControlsHeight,
+    rawLayoutTop,
+    rawLayoutWidth,
+    rawStackMain,
+    shouldHoldDesktopCommit,
+    viewport.h,
+  ]);
 
   useEffect(() => {
     if (
@@ -270,14 +327,19 @@ export function useSpectraLayout(params?: {
     viewport.resizeVersion,
   ]);
 
-  const layoutWidth = hasCommittedLayoutForResize
-    ? committedLayout.layoutWidth
-    : rawLayoutWidth;
+  const shouldUseDesktopSnapshot = !rawStackMain && shouldHoldDesktopCommit;
+  const layoutWidth = shouldUseDesktopSnapshot
+    ? desktopSnapshot.layoutWidth
+    : hasCommittedLayoutForResize
+      ? committedLayout.layoutWidth
+      : rawLayoutWidth;
   const stackMain = layoutWidth < STACK_MAIN_BREAKPOINT;
   const stackSpectra = false;
-  const arrowWidth = hasCommittedLayoutForResize
-    ? committedLayout.arrowWidth
-    : rawArrowWidth;
+  const arrowWidth = shouldUseDesktopSnapshot
+    ? desktopSnapshot.arrowWidth
+    : hasCommittedLayoutForResize
+      ? committedLayout.arrowWidth
+      : rawArrowWidth;
   const drawOuterMin = (stackMain ? BASE : MIN_DRAW_CANVAS) + drawOuterChromePx;
 
   const minSpectraWidth = stackSpectra
@@ -288,26 +350,32 @@ export function useSpectraLayout(params?: {
     ? Math.max(0, layoutWidth - drawOuterChromePx)
     : Math.max(0, layoutWidth - arrowWidth - minSpectraWidth - 2 * gridColGapPx);
 
-  const layoutTopInViewport = hasCommittedLayoutForResize
-    ? committedLayout.layoutTop
-    : rawLayoutTop;
+  const layoutTopInViewport = shouldUseDesktopSnapshot
+    ? desktopSnapshot.layoutTop
+    : hasCommittedLayoutForResize
+      ? committedLayout.layoutTop
+      : rawLayoutTop;
   const bottomSlackPx = Math.ceil(gridRowGapPx + (stackMain ? BASE / 2 : BASE / 8));
-  const viewportHeight = hasCommittedLayoutForResize
-    ? committedLayout.viewportHeight
-    : viewport.h;
+  const viewportHeight = shouldUseDesktopSnapshot
+    ? desktopSnapshot.viewportHeight
+    : hasCommittedLayoutForResize
+      ? committedLayout.viewportHeight
+      : viewport.h;
   const remainingViewportHeight = Math.max(
     0,
     viewportHeight - layoutTopInViewport - bottomSlackPx,
   );
   const shouldUseDesktopControlsBaseline =
-    !stackMain && desktopControlsHeight > 0 && rawControlsHeight > desktopControlsHeight;
+    !stackMain &&
+    hasDesktopSnapshot &&
+    rawControlsHeight > desktopSnapshot.controlsHeight;
   const desktopControlsHeightPx =
     shouldUseDesktopControlsBaseline
-      ? desktopControlsHeight
+      ? desktopSnapshot.controlsHeight
       : rawControlsHeight;
   const stableControlsHeightPx =
-    !stackMain && desktopControlsHeight > 0
-      ? Math.max(desktopControlsHeight, desktopControlsHeightPx)
+    !stackMain && hasDesktopSnapshot
+      ? Math.max(desktopSnapshot.controlsHeight, desktopControlsHeightPx)
       : desktopControlsHeightPx;
   const maxCanvasHeight = stackMain
     ? Math.max(0, remainingViewportHeight - drawOuterChromePx - HEIGHT_SAFETY_MARGIN_PX)
@@ -326,16 +394,17 @@ export function useSpectraLayout(params?: {
     Math.min(maxCanvasHeight, safeDisplaySize),
   );
   const measuredChromeReady = magChromePx > 0 && phaseChromePx > 0;
-  const stableDesktopControlsReady = stackMain || desktopControlsHeight > 0;
-  const hasStableCommittedLayout = hasCommittedLayoutForResize && committedLayout.layoutTop > 0;
+  const stableDesktopControlsReady = stackMain || hasDesktopSnapshot;
+  const hasStableCommittedLayout = shouldUseDesktopSnapshot
+    ? desktopSnapshot.layoutTop > 0
+    : hasCommittedLayoutForResize && committedLayout.layoutTop > 0;
   const hasStableMeasurements =
     hasViewportSnapshot &&
     hasStableCommittedLayout &&
     rawControlsHeight > 0 &&
     rawArrowWidth > 0 &&
     measuredChromeReady &&
-    stableDesktopControlsReady &&
-    !shouldHoldDesktopCommit;
+    stableDesktopControlsReady;
   const measuredDisplaySize = Math.max(BASE, Math.floor(idealDisplaySize / BASE) * BASE);
   const displaySize = measuredDisplaySize;
   const drawOuterSize = displaySize + drawOuterChromePx;
@@ -370,18 +439,6 @@ export function useSpectraLayout(params?: {
   const DESKTOP_INITIAL_MAG_FRAC = 0.42;
   const [magFrac, setMagFrac] = useState(DESKTOP_INITIAL_MAG_FRAC);
   const prevStackMain = useRef<boolean | null>(null);
-
-  useEffect(() => {
-    if (stackMain || rawControlsHeight <= 0) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      setDesktopControlsHeight(rawControlsHeight);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [rawControlsHeight, stackMain]);
 
   useEffect(() => {
     const prev = prevStackMain.current;
