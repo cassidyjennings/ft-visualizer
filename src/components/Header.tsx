@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Moon, Sun } from "lucide-react";
 import { useSettings } from "@/lib/settings/SettingsContext";
 import type {
   CenterConvention,
@@ -14,6 +13,7 @@ import type {
 import { ToggleGroup, ToggleItem } from "./ui/ToggleGroup";
 import { CheckboxOption } from "./ui/CheckboxOption";
 import { DropdownSelect } from "./ui/DropdownSelect";
+import { Sun, Moon, ExternalLink } from "lucide-react";
 
 const nav = [{ href: "/draw", label: "2D Draw" }];
 
@@ -34,12 +34,12 @@ function NavLink({
       href={href}
       onClick={onClick}
       className={[
-        "group relative px-1 py-2 font-serif font-semibold transition",
-        "text-base sm:text-lg lg:text-xl",
+        "group relative px-1 py-2 text-base sm:text-lg lg:text-xl transition font-serif font-semibold",
         active ? "text-fg" : "text-fg/70 hover:text-fg",
       ].join(" ")}
     >
       {label}
+      {/* underline bar */}
       <span
         className={[
           "pointer-events-none absolute left-0 right-0 -bottom-1 h-0.5 transition-all duration-300",
@@ -50,6 +50,7 @@ function NavLink({
   );
 }
 
+// Bigger, clearer gear (Heroicons-style)
 function GearIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -64,30 +65,6 @@ function GearIcon({ className }: { className?: string }) {
   );
 }
 
-function HeaderPanel({
-  title,
-  actions,
-  children,
-}: {
-  title: string;
-  actions?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={[
-        "min-w-0 rounded-xl border border-border bg-card p-2 shadow-lg sm:p-3",
-      ].join(" ")}
-    >
-      <div className="flex items-center justify-between gap-2 pb-2">
-        <span className="font-semibold leading-none">{title}</span>
-        {actions}
-      </div>
-      <div className="grid gap-2">{children}</div>
-    </div>
-  );
-}
-
 export default function Header() {
   const pathname = usePathname();
   const { settings, setSettings } = useSettings();
@@ -96,8 +73,9 @@ export default function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobilePanelRef = useRef<HTMLDivElement | null>(null);
 
+  // Click-outside to close dropdown/mobile panel
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node | null;
@@ -105,8 +83,12 @@ export default function Header() {
       if (dropdownOpen && dropdownRef.current && t && !dropdownRef.current.contains(t)) {
         setDropdownOpen(false);
       }
-
-      if (mobileOpen && mobileMenuRef.current && t && !mobileMenuRef.current.contains(t)) {
+      if (
+        mobileOpen &&
+        mobilePanelRef.current &&
+        t &&
+        !mobilePanelRef.current.contains(t)
+      ) {
         setMobileOpen(false);
       }
     };
@@ -121,18 +103,19 @@ export default function Header() {
       center: settings.center,
       magNormalize: settings.magNormalize,
     }),
-    [settings.center, settings.coloring, settings.magNormalize],
+    [settings.coloring, settings.center, settings.magNormalize],
   );
 
   const isSettingsPage = pathname === "/settings";
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur">
-      <div className="mx-auto flex min-h-17.5 w-full items-center gap-3 px-4 sm:px-6">
-        <h1 className="min-w-0 flex-1 text-fg font-serif">
+      <div className="mx-auto flex min-h-17.5 w-full items-center justify-between px-6 ">
+        {/* Left: title */}
+        <h1 className="min-w-0 truncate text-3xl sm:text-2xl lg:text-3xl text-fg font-serif">
           <Link
             href="/"
-            className="flex min-w-0 items-center gap-3 sm:gap-5"
+            className="flex items-center gap-5"
             onClick={() => {
               setMobileOpen(false);
               setDropdownOpen(false);
@@ -140,20 +123,20 @@ export default function Header() {
           >
             <Image
               src="/silly-fourier-square.png"
-              alt="Fourier's Playground logo"
+              alt="Fourier’s Playground logo"
               width={60}
               height={60}
               priority
-              className="h-11 w-11 shrink-0 select-none sm:h-[60px] sm:w-[60px]"
+              className="select-none"
             />
-            <span className="min-w-0 text-[clamp(0.95rem,3vw,2rem)] leading-tight sm:text-[clamp(1.2rem,3vw,2rem)]">
-              Fourier&apos;s Playground
-            </span>
+            <span>Fourier’s Playground</span>
           </Link>
         </h1>
 
-        <div className="ml-auto flex items-center gap-3 sm:gap-6">
-          <nav className="hidden lg:flex items-center gap-8 px-6">
+        {/* Right: ALL nav + settings aligned together */}
+        <div className="ml-auto flex items-center gap-6">
+          {/* Desktop nav */}
+          <nav className="hidden lg:flex items-center gap-8 px-12">
             {nav.map((item) => (
               <NavLink
                 key={item.href}
@@ -166,7 +149,7 @@ export default function Header() {
               />
             ))}
           </nav>
-
+          {/* Settings dropdown trigger (no outline, underline when on /settings) */}
           <div ref={dropdownRef} className="relative">
             <button
               type="button"
@@ -174,14 +157,16 @@ export default function Header() {
               aria-expanded={dropdownOpen}
               onClick={() => setDropdownOpen((v) => !v)}
               className={[
-                "relative px-1 py-2 text-fg/70 transition hover:text-fg",
+                "relative px-1 py-2 text-fg/70 hover:text-fg transition",
                 dropdownOpen ? "text-fg" : "",
               ].join(" ")}
               title="Settings"
             >
               <span className="inline-flex items-center gap-2">
-                <GearIcon className="h-7 w-7 fill-brand-2" />
+                <GearIcon className="h-7 w-7 fill-brand-2 " />
               </span>
+
+              {/* underline bar (selected when on settings page) */}
               <span
                 className={[
                   "pointer-events-none absolute left-0 right-0 -bottom-1 h-0.5 transition-all duration-300",
@@ -192,208 +177,234 @@ export default function Header() {
 
             {dropdownOpen && (
               <div role="menu" className="absolute right-0 top-11 z-50 w-82">
-                <HeaderPanel
-                  title="Quick Settings"
-                  actions={
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href="/settings"
-                        className="inline-flex h-8 items-center justify-center rounded border border-border/80 bg-card px-2 shadow-sm transition hover:bg-fg/10 active:scale-95"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        Full settings
-                      </Link>
-                      <button
-                        type="button"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded border border-border/80 bg-card shadow-sm transition hover:bg-fg/10 active:scale-95"
-                        aria-label="Close"
-                        onClick={() => setDropdownOpen(false)}
-                        title="Close"
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          className="h-5 w-5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M6 6l12 12M18 6L6 18" />
-                        </svg>
-                      </button>
-                    </div>
-                  }
+                <div
+                  className={[
+                    "min-w-0 shadow-lg",
+                    "rounded-xl border border-border",
+                    "bg-card",
+                    "p-2 sm:p-3",
+                  ].join(" ")}
                 >
-                  <DropdownSelect
-                    label="Canvas Origin"
-                    className="grid w-full gap-1 rounded-xl border border-border/60 bg-card px-3 py-2 shadow-sm"
-                    value={quick.center}
-                    onChange={(v) =>
-                      setSettings((s) => ({
-                        ...s,
-                        center: v as CenterConvention,
-                      }))
-                    }
-                    options={[
-                      { value: "centerPixel", label: "Bottom-right center pixel" },
-                      { value: "centerBetween", label: "Between middle pixels" },
-                      { value: "topLeft", label: "Top-left pixel" },
-                    ]}
-                  />
+                  {/* Header row */}
+                  <div className="flex items-center justify-between pb-2">
+                    <span className="font-semibold font-serif leading-none">
+                      Quick Settings
+                    </span>
 
-                  <div className="grid gap-1 rounded-xl border border-border/60 bg-card px-3 py-2 shadow-sm">
-                    <CheckboxOption
-                      id="magnitude-normalization"
-                      checked={quick.magNormalize === "max"}
-                      onCheckedChange={() => {
-                        const next = quick.magNormalize === "max" ? "none" : "max";
-                        setSettings((s) => ({
-                          ...s,
-                          magNormalize: next as MagNormalize,
-                        }));
-                      }}
-                      label="Display normalized DFT magnitude."
-                      selectedPreview="DFT magnitude is normalized to its maximum."
-                      unselectedPreview="DFT magnitude is unnormalized."
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 pt-1">
-                    <ToggleGroup
-                      height={34}
-                      className="col-span-2 w-full min-w-0 bg-card shadow-sm"
+                    <Link
+                      href="/settings"
+                      className="inline-flex text-sm items-center flex-row shadow-sm gap-2 px-2 py-2 justify-center border border-border/80 rounded bg-card hover:bg-fg/10 active:scale-95 transition select-none"
+                      style={{ height: 34 }}
+                      onClick={() => setDropdownOpen(false)}
                     >
-                      <ToggleItem
-                        active={quick.coloring === "light"}
-                        onClick={() =>
-                          setSettings((s) => ({
-                            ...s,
-                            coloring: "light" as DisplayColoring,
-                          }))
-                        }
-                        title="Set theme to light."
-                        isFirst
-                        className="w-[25%]"
-                      >
-                        <Sun className="h-6 w-6" />
-                      </ToggleItem>
-                      <ToggleItem
-                        active={quick.coloring === "dark"}
-                        onClick={() =>
-                          setSettings((s) => ({
-                            ...s,
-                            coloring: "dark" as DisplayColoring,
-                          }))
-                        }
-                        title="Set theme to dark."
-                        className="w-[25%]"
-                      >
-                        <Moon className="h-6 w-6" />
-                      </ToggleItem>
-                      <ToggleItem
-                        active={quick.coloring === "system"}
-                        onClick={() =>
-                          setSettings((s) => ({
-                            ...s,
-                            coloring: "system" as DisplayColoring,
-                          }))
-                        }
-                        title="Set theme to OS default."
-                        className="w-[50%] text-sm"
-                        padX={0}
-                      >
-                        OS Default
-                      </ToggleItem>
-                    </ToggleGroup>
+                      Full Settings
+                      <ExternalLink className="size-4" />
+                    </Link>
 
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center rounded border border-border/80 bg-brand-2 px-2 text-brand-contrast shadow-sm transition hover:bg-brand active:scale-95"
-                      style={{ height: 34 }}
-                      onClick={() => {
-                        setSettings((s) => ({
-                          ...s,
-                          coloring: "system",
-                          center: "centerBetween",
-                          magNormalize: "max",
-                        }));
-                      }}
-                      title="Reset quick settings"
+                      className="inline-flex h-8 w-8 shadow-sm items-center justify-center border border-border/80 rounded bg-card hover:bg-fg/10 active:scale-95 transition select-none"
+                      aria-label="Close"
+                      onClick={() => setDropdownOpen(false)}
+                      title="Close"
                     >
-                      Reset
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M6 6l12 12M18 6L6 18" />
+                      </svg>
                     </button>
                   </div>
-                </HeaderPanel>
+
+                  <div className="grid gap-2">
+                    {/* Canvas Origin */}
+                    <DropdownSelect
+                      label="Canvas Origin"
+                      className="grid gap-1 shadow-sm border border-border/60 rounded-xl bg-card w-full px-3 py-2"
+                      value={quick.center}
+                      onChange={(v) =>
+                        setSettings((s) => ({
+                          ...s,
+                          center: v as CenterConvention,
+                        }))
+                      }
+                      options={[
+                        { value: "centerPixel", label: "Bottom-right center pixel" },
+                        { value: "centerBetween", label: "Between middle pixels" },
+                        { value: "topLeft", label: "Top-left pixel" },
+                      ]}
+                    />
+
+                    {/* Mag Normalize */}
+                    <div className="grid gap-1 shadow-sm border border-border/60 rounded-xl bg-card w-full px-3 py-2">
+                      <CheckboxOption
+                        id="magnitude-normalization"
+                        checked={quick.magNormalize === "max"}
+                        onCheckedChange={() => {
+                          const next = quick.magNormalize === "max" ? "none" : "max";
+                          setSettings((s) => ({
+                            ...s,
+                            magNormalize: next as MagNormalize,
+                          }));
+                        }}
+                        label="Display normalized DFT magnitude."
+                        selectedPreview="DFT magnitude is normalized to its maximum."
+                        unselectedPreview="DFT magnitude is unnormalized."
+                      />
+                    </div>
+
+                    <div className="pt-1 grid grid-cols-3 gap-2">
+                      <ToggleGroup
+                        height={34}
+                        className="w-full min-w-0 col-span-2 bg-card shadow-sm "
+                      >
+                        <ToggleItem
+                          active={quick.coloring === "light"}
+                          onClick={() =>
+                            setSettings((s) => ({
+                              ...s,
+                              coloring: "light" as DisplayColoring,
+                            }))
+                          }
+                          title="Set theme to light."
+                          isFirst
+                          className="w-[25%]"
+                        >
+                          <Sun className="h-6 w-6" />
+                        </ToggleItem>
+                        <ToggleItem
+                          active={quick.coloring === "dark"}
+                          onClick={() =>
+                            setSettings((s) => ({
+                              ...s,
+                              coloring: "dark" as DisplayColoring,
+                            }))
+                          }
+                          title="Set theme to dark."
+                          className="w-[25%]"
+                        >
+                          <Moon className="h-6 w-6" />
+                        </ToggleItem>
+                        <ToggleItem
+                          active={quick.coloring === "system"}
+                          onClick={() =>
+                            setSettings((s) => ({
+                              ...s,
+                              coloring: "system" as DisplayColoring,
+                            }))
+                          }
+                          title="Set theme to OS default."
+                          className="w-[50%] text-sm"
+                          padX={0}
+                        >
+                          OS Default
+                        </ToggleItem>
+                      </ToggleGroup>
+
+                      <button
+                        type="button"
+                        className="inline-flex items-center shadow-sm justify-center border border-border/80 rounded bg-brand-2 text-brand-contrast hover:bg-brand active:scale-95 transition select-none px-2"
+                        style={{ height: 34 }}
+                        onClick={() => {
+                          setSettings((s) => ({
+                            ...s,
+                            coloring: "system",
+                            center: "centerBetween",
+                            magNormalize: "max",
+                          }));
+                        }}
+                        title="Reset quick settings"
+                      >
+                        Reset
+                      </button>
+                    </div>
+
+                    <div className="pt-1 grid grid-cols-1"></div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
-          <div ref={mobileMenuRef} className="relative lg:hidden">
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center text-fg/80 transition hover:text-fg"
-              aria-label="Open menu"
-              aria-expanded={mobileOpen}
-              onClick={() => setMobileOpen((v) => !v)}
+          {/* Mobile menu button */}
+          <button
+            type="button"
+            className="lg:hidden inline-flex h-9 w-9 items-center justify-center text-fg/80 hover:text-fg transition"
+            aria-label="Open menu"
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen(true)}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="h-7 w-7"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
             >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-7 w-7"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M4 7h16M4 12h16M4 17h16" />
-              </svg>
-            </button>
-          </div>
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
         </div>
       </div>
 
+      {/* Mobile overlay + panel */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-bg/55 backdrop-blur-sm" />
-          <div className="absolute inset-y-0 right-0 flex w-full max-w-sm items-start justify-end p-3 sm:p-4">
-            <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-3 shadow-lg">
-              <div className="flex items-center justify-between gap-2 pb-2">
-                <span className="font-semibold leading-none">Menu</span>
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded border border-border/80 bg-card shadow-sm transition hover:bg-fg/10 active:scale-95"
-                  aria-label="Close menu"
-                  onClick={() => setMobileOpen(false)}
+        <div className="lg:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-bg/50" />
+          <div
+            ref={mobilePanelRef}
+            className="absolute left-0 top-0 h-full w-80 max-w-[85vw] border-r border-fg/10 bg-bg/90 p-4 shadow-xl backdrop-blur"
+          >
+            <div className="flex items-center justify-between">
+              <Link
+                href="/"
+                className="truncate font-semibold tracking-tight text-lg text-fg"
+                onClick={() => setMobileOpen(false)}
+              >
+                Fourier Transform Visualizer
+              </Link>
+
+              <button
+                type="button"
+                aria-label="Close menu"
+                className="inline-flex h-9 w-9 items-center justify-center text-fg/80 hover:text-fg transition"
+                onClick={() => setMobileOpen(false)}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-7 w-7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M6 6l12 12M18 6L6 18" />
-                  </svg>
-                </button>
-              </div>
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+            </div>
 
-              <div className="grid gap-2">
-                {nav.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="inline-flex items-center justify-between rounded-lg border border-border/60 bg-card px-3 py-2 text-base font-medium text-fg/80 shadow-sm transition hover:bg-fg/10 hover:text-fg"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-
+            <div className="mt-6 space-y-1">
+              {nav.map((item) => (
                 <Link
-                  href="/settings"
+                  key={item.href}
+                  href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className="inline-flex items-center justify-between rounded-lg border border-border/60 bg-card px-3 py-2 text-base font-medium text-fg/80 shadow-sm transition hover:bg-fg/10 hover:text-fg"
+                  className="block px-2 py-2 text-lg text-fg/80 hover:text-fg"
                 >
-                  Settings
+                  {item.label}
                 </Link>
-              </div>
+              ))}
+
+              <Link
+                href="/settings"
+                onClick={() => setMobileOpen(false)}
+                className="block px-2 py-2 text-lg text-fg/80 hover:text-fg"
+              >
+                Settings
+              </Link>
             </div>
           </div>
         </div>

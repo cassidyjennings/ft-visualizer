@@ -45,10 +45,10 @@ export function CheckboxOption({
       />
 
       <div className="min-w-0">
-        <div className="text-sm font-medium text-fg">{label}</div>
+        <div className="text-md font-medium font-serif text-fg">{label}</div>
         <div
           className={cx(
-            "mt-1 text-xs leading-snug",
+            "mt-1 text-sm leading-snug font-sans",
 
             checked ? "text-fg/70" : "text-fg/70",
           )}

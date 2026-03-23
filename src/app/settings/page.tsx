@@ -1,6 +1,11 @@
 "use client";
 
 import React from "react";
+import { Sun, Moon } from "lucide-react";
+
+import { CheckboxOption } from "@/components/ui/CheckboxOption";
+import { DropdownSelect } from "@/components/ui/DropdownSelect";
+import { ToggleGroup, ToggleItem } from "@/components/ui/ToggleGroup";
 import { useSettings } from "@/lib/settings/SettingsContext";
 import type {
   CenterConvention,
@@ -8,9 +13,6 @@ import type {
   MagScale,
   ShiftConvention,
 } from "@/lib/settings/types";
-
-import { ToggleGroup, ToggleItem } from "@/components/ui/ToggleGroup";
-import { Sun, Moon } from "lucide-react";
 
 function cx(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -26,25 +28,64 @@ function GHCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border bg-card overflow-hidden">
-      <div className="px-5 py-4">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+    <section className="space-y-4">
+      <div className="space-y-1.5">
+        <h2 className="text-lg font-semibold font-serif text-fg">{title}</h2>
         {subtitle ? (
-          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          <p className="max-w-3xl text-sm leading-6 text-fg/70">{subtitle}</p>
         ) : null}
       </div>
-      <div className="divide-y border-t">{children}</div>
+      <div className="overflow-hidden rounded-xl border border-border bg-card/80 shadow-sm">
+        <div className="divide-y divide-border">{children}</div>
+      </div>
     </section>
   );
 }
 
-function Row({ children, className }: { children: React.ReactNode; className?: string }) {
+function SectionBreak() {
+  return <hr className="border-border" />;
+}
+
+function SettingRow({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={cx("px-5 py-4", "hover:bg-muted/40", className)}>{children}</div>
+    <div
+      className={cx(
+        "px-4 py-4 sm:px-5 sm:py-5",
+        "transition-colors hover:bg-fg/3",
+        className,
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
-function LabelBlock({
+function SettingSplit({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cx(
+        "flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-6",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DescriptionStack({
   label,
   description,
 }: {
@@ -52,43 +93,31 @@ function LabelBlock({
   description?: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1">
-      <div className="text-sm font-semibold text-foreground">{label}</div>
+    <div className="min-w-0 space-y-1">
+      <div className="text-sm font-medium font-serif text-fg">{label}</div>
       {description ? (
-        <div className="text-sm text-muted-foreground">{description}</div>
+        <div className="max-w-2xl text-sm leading-6 text-fg/70">{description}</div>
       ) : null}
     </div>
   );
 }
 
-function Select({
-  value,
-  onChange,
-  children,
-  className,
+function PreviewText({
+  description,
+  resultText,
 }: {
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-  className?: string;
+  description?: React.ReactNode;
+  resultText?: React.ReactNode;
 }) {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={cx(
-        "w-full max-w-md rounded-md border bg-background px-3 py-2 text-sm",
-        "text-foreground",
-        "focus:outline-none focus:ring-2 focus:ring-(--ring)",
-        className,
-      )}
-    >
-      {children}
-    </select>
+    <div className="space-y-1">
+      {description ? <div>{description}</div> : null}
+      {resultText ? <div>{resultText}</div> : null}
+    </div>
   );
 }
 
-function Segmented({
+function DisabledPanel({
   disabled,
   children,
 }: {
@@ -97,43 +126,75 @@ function Segmented({
 }) {
   return (
     <div
+      aria-disabled={disabled}
       className={cx(
-        "inline-flex rounded-md border bg-background overflow-hidden",
-        disabled && "opacity-60",
+        "rounded-lg border border-border bg-card px-4 py-3 transition-opacity",
+        disabled && "opacity-55",
       )}
     >
-      <ToggleGroup height={40} className="flex">
-        {children}
-      </ToggleGroup>
+      {children}
     </div>
   );
 }
 
-function SegItem({
+function CardToggleGroup({
   value,
-  currentValue,
-  onSelect,
+  onValueChange,
   disabled,
   children,
 }: {
   value: string;
-  currentValue: string;
-  onSelect: (value: string) => void;
+  onValueChange: (v: string) => void;
   disabled?: boolean;
-  children: React.ReactNode;
+  children: React.ReactElement<CardToggleItemProps>[];
 }) {
   return (
+    <ToggleGroup
+      height={38}
+      className={cx("w-full min-w-0 sm:w-auto", disabled && "opacity-60")}
+      borderColor="border"
+    >
+      {React.Children.map(children, (child, index) =>
+        React.cloneElement(child, {
+          active: child.props.value === value,
+          disabled,
+          isFirst: index === 0,
+          onClick: () => {
+            if (!disabled) onValueChange(child.props.value);
+          },
+        }),
+      )}
+    </ToggleGroup>
+  );
+}
+
+type CardToggleItemProps = {
+  value: string;
+  children: React.ReactNode;
+  active?: boolean;
+  disabled?: boolean;
+  isFirst?: boolean;
+  onClick?: () => void;
+};
+
+function CardToggleItem({
+  children,
+  active,
+  disabled,
+  isFirst,
+  onClick,
+}: CardToggleItemProps) {
+  return (
     <ToggleItem
-      active={currentValue === value}
+      grow
+      active={Boolean(active)}
       onClick={() => {
-        if (disabled) return;
-        onSelect(value);
+        if (!disabled) onClick?.();
       }}
+      isFirst={isFirst}
       className={cx(
-        "rounded-none border-0 px-3 py-2 text-sm font-medium",
-        "text-foreground/85 hover:bg-muted",
-        "data-[state=on]:bg-muted data-[state=on]:text-foreground",
-        "transition",
+        "px-3 text-sm font-medium text-fg/85",
+        disabled && "cursor-not-allowed",
       )}
     >
       {children}
@@ -141,35 +202,49 @@ function SegItem({
   );
 }
 
-function CheckboxRow({
-  checked,
-  onCheckedChange,
-  label,
-  description,
-  resultText,
+function ThemeModeToggle({
+  value,
+  onValueChange,
+  disabled,
 }: {
-  checked: boolean;
-  onCheckedChange: (next: boolean) => void;
-  label: string;
-  description?: React.ReactNode;
-  resultText: React.ReactNode;
+  value: string;
+  onValueChange: (v: string) => void;
+  disabled?: boolean;
 }) {
   return (
-    <div className="flex gap-3">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onCheckedChange(e.target.checked)}
-        className={cx("mt-0.5 h-4 w-4 rounded border bg-background", "accent-foreground")}
-      />
-      <div className="space-y-1">
-        <div className="text-sm font-semibold text-foreground">{label}</div>
-        {description ? (
-          <div className="text-sm text-muted-foreground">{description}</div>
-        ) : null}
-        <div className="text-sm text-muted-foreground">{resultText}</div>
-      </div>
-    </div>
+    <ToggleGroup
+      height={38}
+      className={cx("w-full sm:w-auto", disabled && "opacity-60")}
+      borderColor="border"
+    >
+      <ToggleItem
+        grow
+        active={value === "light"}
+        padX={14}
+        onClick={() => {
+          if (!disabled) onValueChange("light");
+        }}
+        title="Light"
+        isFirst
+        className={cx(disabled && "cursor-not-allowed")}
+      >
+        <Sun className="h-4 w-4" />
+        <span className="sr-only">Light</span>
+      </ToggleItem>
+      <ToggleItem
+        grow
+        active={value === "dark"}
+        padX={14}
+        onClick={() => {
+          if (!disabled) onValueChange("dark");
+        }}
+        title="Dark"
+        className={cx(disabled && "cursor-not-allowed")}
+      >
+        <Moon className="h-4 w-4" />
+        <span className="sr-only">Dark</span>
+      </ToggleItem>
+    </ToggleGroup>
   );
 }
 
@@ -178,60 +253,40 @@ export default function SettingsPage() {
 
   type ColoringMode = "system" | "light" | "dark";
 
-  // ===== Derived display strings (for “result text under checkbox option”) =====
   const isShifted = settings.shift === ("shifted" as ShiftConvention);
   const shiftResult = isShifted
-    ? "Result: DC (0 frequency) is centered in the spectrum."
-    : "Result: DC appears at the top-left (unshifted display).";
+    ? "Result: Zero frequency is centered in the magnitude display."
+    : "Result: Zero frequency appears at the top-left of the magnitude display.";
 
   const useOS = settings.coloring === ("system" as ColoringMode);
-  const effectiveIfSystem = "Result: Theme follows your OS preference.";
-  const effectiveIfManual =
-    settings.coloring === "dark"
-      ? "Result: Dark theme is forced."
-      : "Result: Light theme is forced.";
-
-  const manualThemeLabel =
-    settings.coloring === "dark"
-      ? "Selected: Dark"
-      : settings.coloring === "light"
-        ? "Selected: Light"
-        : "Selected: (none)";
 
   return (
-    <main className="mx-auto w-full max-w-4xl p-6 sm:p-8 space-y-6">
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-6 sm:px-8 sm:py-8">
+      <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             Settings
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Choose conventions for coordinates and Fourier display.
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+            Choose conventions for coordinates, Fourier display, and appearance.
           </p>
         </div>
 
         <button
           type="button"
           onClick={reset}
-          className={cx(
-            "shrink-0 rounded-md border px-3 py-2 text-sm font-semibold",
-            "bg-card text-foreground hover:bg-muted",
-            "active:scale-[0.98] transition",
-          )}
+          className="inline-flex h-10 items-center justify-center rounded border border-border bg-brand-2 px-3 text-sm text-brand-contrast shadow-sm transition hover:bg-brand active:scale-95"
         >
-          Reset
+          Reset to Default Settings
         </button>
       </div>
 
-      {/* DFT Magnitude display (one card) */}
       <GHCard
         title="DFT Magnitude display"
         subtitle="Controls how the magnitude spectrum is presented."
       >
-        {/* Display shift (checkbox) */}
-        <Row>
-          <CheckboxRow
+        <SettingRow>
+          <CheckboxOption
             checked={isShifted}
             onCheckedChange={(next) =>
               setSettings((s) => ({
@@ -239,77 +294,89 @@ export default function SettingsPage() {
                 shift: (next ? "shifted" : "unshifted") as ShiftConvention,
               }))
             }
-            label="Center DC (fftshift)"
-            description="Shift the spectrum so the zero frequency sits in the center."
-            resultText={shiftResult}
+            label="Center DC"
+            selectedPreview={
+              <PreviewText
+                description="Shift the spectrum so the zero-frequency component (the signal’s average level) is displayed in the center rather than at the edges."
+                resultText={shiftResult}
+              />
+            }
+            unselectedPreview={
+              <PreviewText
+                description="Shift the spectrum so the zero-frequency component (the signal’s average level) is displayed in the center rather than at the edges."
+                resultText={shiftResult}
+              />
+            }
           />
-        </Row>
+        </SettingRow>
 
-        {/* Magnitude scale (segmented) */}
-        <Row>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <LabelBlock
+        <SettingRow>
+          <SettingSplit>
+            <DescriptionStack
               label="Magnitude scale"
-              description="Use log for better visibility when values span a large range."
+              description="Use log for better visibility when Fourier transform values span a large range."
             />
-            <Segmented
+            <CardToggleGroup
+              value={settings.magScale}
+              onValueChange={(v) =>
+                setSettings((s) => ({ ...s, magScale: v as MagScale }))
+              }
             >
-              <SegItem
-                value="linear"
-                currentValue={settings.magScale}
-                onSelect={(v) => setSettings((s) => ({ ...s, magScale: v as MagScale }))}
-              >
-                Linear
-              </SegItem>
-              <SegItem
-                value="log"
-                currentValue={settings.magScale}
-                onSelect={(v) => setSettings((s) => ({ ...s, magScale: v as MagScale }))}
-              >
-                Log (log1p)
-              </SegItem>
-            </Segmented>
-          </div>
-        </Row>
+              {[
+                <CardToggleItem key="linear" value="linear">
+                  Linear
+                </CardToggleItem>,
+                <CardToggleItem key="log" value="log">
+                  Log
+                </CardToggleItem>,
+              ]}
+            </CardToggleGroup>
+          </SettingSplit>
+        </SettingRow>
       </GHCard>
 
-      {/* Conventions card */}
+      <SectionBreak />
+
       <GHCard
         title="Conventions"
         subtitle="These affect the coordinate system and DFT normalization rules."
       >
-        {/* Center convention (dropdown) */}
-        <Row>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <LabelBlock
+        <SettingRow>
+          <SettingSplit>
+            <DescriptionStack
               label="Canvas coordinate origin"
-              description="Affects the crosshair/axis overlay."
+              description="Affects the crosshair and axis overlay on the drawing canvas."
             />
-            <div className="w-full sm:w-auto">
-              <Select
-                value={settings.center}
-                onChange={(v) =>
-                  setSettings((s) => ({ ...s, center: v as CenterConvention }))
-                }
-                className="sm:w-85"
-              >
-                <option value="centerPixel">Bottom-right middle pixel is (0,0)</option>
-                <option value="centerBetween">Between middle pixels is (0,0)</option>
-                <option value="topLeft">Top-left is (0,0)</option>
-              </Select>
-            </div>
-          </div>
-        </Row>
+            <DropdownSelect
+              value={settings.center}
+              onChange={(v) =>
+                setSettings((s) => ({ ...s, center: v as CenterConvention }))
+              }
+              options={[
+                {
+                  value: "centerPixel",
+                  label: "Bottom-right middle pixel is (0,0)",
+                },
+                {
+                  value: "centerBetween",
+                  label: "Between middle pixels is (0,0)",
+                },
+                { value: "topLeft", label: "Top-left is (0,0)" },
+              ]}
+              className="w-full lg:w-88"
+              selectClassName="h-12 w-full border-border bg-card px-3"
+            />
+          </SettingSplit>
+        </SettingRow>
 
-        {/* Normalization (dropdown) */}
-        <Row>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <LabelBlock
+        <SettingRow>
+          <SettingSplit>
+            <DescriptionStack
               label="DFT normalization"
-              description="N is the total number of samples (2D: width×height)."
+              description="N is the number of samples in the transform (i.e. number of squares on the draw canvas grid)."
             />
-            <div className="w-full sm:w-auto">
-              <Select
+            <div className="w-full space-y-2 lg:w-88">
+              <DropdownSelect
                 value={settings.normalization}
                 onChange={(v) =>
                   setSettings((s) => ({
@@ -317,89 +384,74 @@ export default function SettingsPage() {
                     normalization: v as FFTNormalization,
                   }))
                 }
-                className="sm:w-85"
-              >
-                <option value="forward">Forward (1/N)</option>
-                <option value="inverse">Inverse (1/N)</option>
-                <option value="unitary">Unitary (1/√N on both)</option>
-                <option value="none">None</option>
-              </Select>
+                options={[
+                  { value: "forward", label: "Forward (1/N)" },
+                  { value: "inverse", label: "Inverse (1/N)" },
+                  { value: "unitary", label: "Unitary (1/sqrt(N) on both)" },
+                  { value: "none", label: "None" },
+                ]}
+                className="w-full"
+                selectClassName="h-12 w-full border-border bg-card px-3"
+              />
             </div>
-          </div>
-        </Row>
+          </SettingSplit>
+        </SettingRow>
       </GHCard>
 
-      {/* Theme (own row/card) */}
+      <SectionBreak />
+
       <GHCard title="Theme" subtitle="Pick your preferred appearance.">
-        <Row>
-          <div className="flex flex-col gap-3">
-            <CheckboxRow
-              checked={useOS}
-              onCheckedChange={(next) =>
-                setSettings((s) => ({
-                  ...s,
-                  coloring: (next ? "system" : "light") as ColoringMode,
-                }))
-              }
-              label="Use OS settings"
-              description="Automatically switch between light and dark based on your system."
-              resultText={useOS ? effectiveIfSystem : effectiveIfManual}
-            />
+        <SettingRow>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.95fr)]">
+            <DisabledPanel disabled={false}>
+              <CheckboxOption
+                checked={useOS}
+                onCheckedChange={(next) =>
+                  setSettings((s) => ({
+                    ...s,
+                    coloring: (next ? "system" : "light") as ColoringMode,
+                  }))
+                }
+                label="Use OS settings"
+                selectedPreview={
+                  <PreviewText resultText="Result: App appearance matches OS settings." />
+                }
+                unselectedPreview={
+                  <PreviewText resultText="Result: App appearance matches selected theme." />
+                }
+              />
+            </DisabledPanel>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pl-7">
-              <div className="text-sm font-semibold text-foreground">Manual theme</div>
+            <DisabledPanel disabled={useOS}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 space-y-1">
+                  <div className="text-md font-medium font-serif text-fg">
+                    Manual theme
+                  </div>
 
-              <div className="space-y-1">
-                <Segmented
+                  <div className="text-sm leading-5 text-fg/70 lg:max-w-sm">
+                    {useOS
+                      ? `Disabled while using OS settings.`
+                      : "Select theme for app appearance."}
+                  </div>
+                </div>
+                <ThemeModeToggle
+                  value={
+                    useOS
+                      ? settings.coloring === "dark"
+                        ? "dark"
+                        : "light"
+                      : settings.coloring
+                  }
+                  onValueChange={(v) =>
+                    setSettings((s) => ({ ...s, coloring: v as ColoringMode }))
+                  }
                   disabled={useOS}
-                >
-                  <SegItem
-                    value="light"
-                    currentValue={
-                      (useOS
-                        ? settings.coloring === "dark"
-                          ? "dark"
-                          : "light"
-                        : settings.coloring) as string
-                    }
-                    onSelect={(v) => setSettings((s) => ({ ...s, coloring: v as ColoringMode }))}
-                    disabled={useOS}
-                  >
-                    <Sun className="h-4 w-4" />
-                    <span className="sr-only">Light</span>
-                  </SegItem>
-                  <SegItem
-                    value="dark"
-                    currentValue={
-                      (useOS
-                        ? settings.coloring === "dark"
-                          ? "dark"
-                          : "light"
-                        : settings.coloring) as string
-                    }
-                    onSelect={(v) => setSettings((s) => ({ ...s, coloring: v as ColoringMode }))}
-                    disabled={useOS}
-                  >
-                    <Moon className="h-4 w-4" />
-                    <span className="sr-only">Dark</span>
-                  </SegItem>
-                </Segmented>
-
-                {useOS ? (
-                  <div className="text-sm text-muted-foreground">
-                    Disabled while using OS settings. {manualThemeLabel}.
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    {settings.coloring === "dark"
-                      ? "Result: Dark theme is forced."
-                      : "Result: Light theme is forced."}
-                  </div>
-                )}
+                />
               </div>
-            </div>
+            </DisabledPanel>
           </div>
-        </Row>
+        </SettingRow>
       </GHCard>
     </main>
   );

@@ -30,17 +30,15 @@ export function DropdownSelect<T extends string>({
 }: DropdownSelectProps<T>) {
   return (
     <div className={className}>
-      {label && <span className="text-fg/70 text-xs font-medium">{label}</span>}
+      {label && <span className="text-fg text-sm font-medium font-serif">{label}</span>}
 
       <select
         className={cx(
-          "border border-border/40 rounded bg-bg/50 px-2 w-full text-sm",
-          "focus:outline-none focus:ring-2 focus:ring-(--ring)/30",
+          "border border-border/40 rounded bg-bg/30 px-2 w-full text-sm font-sans",
           selectClassName,
         )}
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        style={{ height: 34 }}
       >
         {options.map((opt) => (
           <option key={String(opt.value)} value={opt.value}>
