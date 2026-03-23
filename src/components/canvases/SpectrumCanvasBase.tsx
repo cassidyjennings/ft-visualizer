@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import RegalCanvasFrame from "@/components/ui/RegalCanvasFrame";
+import RegalCanvasFrame from "@/components/icons/RegalCanvasFrame";
 
 export type SpectrumKey = "mag" | "phase";
 
@@ -22,6 +22,7 @@ type SpectrumCanvasBaseProps = {
   keyContent?: React.ReactNode;
   frameInsetPx?: number;
   onChromePxChange?: (px: number) => void;
+  showResizeHandle?: boolean;
 };
 
 const TITLE_GAP = 8;
@@ -39,6 +40,7 @@ export default function SpectrumCanvasBase({
   keyContent,
   frameInsetPx = 0,
   onChromePxChange,
+  showResizeHandle = true,
 }: SpectrumCanvasBaseProps) {
   const inset = Math.round(frameInsetPx);
   const outerPx = Math.round(px);
@@ -76,11 +78,9 @@ export default function SpectrumCanvasBase({
         style={{
           width: outerPx,
           height: outerPx,
-          clipPath: "inset(-1000px 0px -1000px 0px)", // clip horizontally, allow vertical overlays
+          clipPath: "inset(-1000px 0px -1000px 0px)",
         }}
       >
-        {/* Title overlay */}
-
         <div
           ref={titleRef}
           className="absolute inset-x-0 flex justify-center pointer-events-none"
@@ -93,15 +93,13 @@ export default function SpectrumCanvasBase({
           </div>
         </div>
 
-        {/* Square fills wrapper (outer chrome, includes frame) */}
         <div className="absolute inset-0 overflow-visible">
-          {/* Frame behind (does NOT block pointer events) */}
           {inset > 0 ? (
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
               <RegalCanvasFrame innerSize={innerPx} frame={Math.max(1, inset)} pad={0} />
             </div>
           ) : null}
-          {/* Inset content area (the window) */}
+
           <div
             className="absolute z-0"
             style={{
@@ -109,44 +107,45 @@ export default function SpectrumCanvasBase({
               top: inset,
               width: innerPx,
               height: innerPx,
-              background, // keep background behind canvas consistent
+              background,
             }}
           >
             {canvas}
           </div>
-          {/* Resize handle: keep it on the OUTER box */}
-          <div
-            className="absolute z-20 bottom-1 right-1 h-5 w-5 rounded cursor-se-resize touch-none flex items-center justify-center"
-            title="Drag to resize"
-            onPointerDown={(e) => onPointerDownHandle(dragKey, e)}
-            onPointerMove={onPointerMoveHandle}
-            onPointerUp={onPointerUpHandle}
-            onPointerCancel={onPointerUpHandle}
-          >
-            <svg viewBox="0 0 16 16" className="h-4 w-4 opacity-80 text-frame-accent">
-              <path
-                d="M6 14L14 6"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              <path
-                d="M9 14L14 9"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              <path
-                d="M12 14L14 12"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
+
+          {showResizeHandle ? (
+            <div
+              className="absolute z-20 bottom-1 right-1 h-5 w-5 rounded cursor-se-resize touch-none flex items-center justify-center"
+              title="Drag to resize"
+              onPointerDown={(e) => onPointerDownHandle(dragKey, e)}
+              onPointerMove={onPointerMoveHandle}
+              onPointerUp={onPointerUpHandle}
+              onPointerCancel={onPointerUpHandle}
+            >
+              <svg viewBox="0 0 16 16" className="h-4 w-4 opacity-80 text-frame-accent">
+                <path
+                  d="M6 14L14 6"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M9 14L14 9"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M12 14L14 12"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+          ) : null}
         </div>
 
-        {/* Key overlay below square */}
         {keyContent ? (
           <div
             ref={keyRef}

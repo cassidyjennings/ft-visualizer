@@ -18,6 +18,7 @@ type PhaseCanvasProps = {
   keyContent?: React.ReactNode;
   frameInsetPx?: number;
   onChromePxChange?: (px: number) => void;
+  showResizeHandle?: boolean;
 };
 
 export default function PhaseCanvas({
@@ -31,6 +32,7 @@ export default function PhaseCanvas({
   keyContent,
   frameInsetPx,
   onChromePxChange,
+  showResizeHandle,
 }: PhaseCanvasProps) {
   const fallbackRef = useRef<HTMLCanvasElement | null>(null);
   const refToUse = canvasRef ?? fallbackRef;
@@ -49,6 +51,7 @@ export default function PhaseCanvas({
       keyContent={keyContent}
       frameInsetPx={frameInsetPx}
       onChromePxChange={onChromePxChange}
+      showResizeHandle={showResizeHandle}
       canvas={
         <canvas
           ref={refToUse}

@@ -1,16 +1,20 @@
 export function ToggleGroup({
   children,
   height,
+  borderColor = "border/65",
   className = "",
 }: {
   children: React.ReactNode;
   height: number; // px
+  borderColor?: string;
   className?: string;
 }) {
+  const borderColorKeyword = ["border-", borderColor].join("");
   return (
     <div
       className={[
-        "inline-flex overflow-hidden border border-border rounded",
+        "inline-flex overflow-hidden border rounded",
+        borderColorKeyword,
         "min-w-0",
         className,
       ].join(" ")}
@@ -53,7 +57,7 @@ export function ToggleItem({
         grow ? "flex-1 basis-0" : "",
         "bg-card hover:bg-fg/10 active:scale-[0.98] transition",
         active ? "bg-fg/15" : "",
-        isFirst ? "" : "border-l border-border",
+        isFirst ? "" : "border-l border-border/65",
         className,
       ].join(" ")}
     >

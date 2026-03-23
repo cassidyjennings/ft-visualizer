@@ -4,12 +4,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 import { useSettings } from "@/lib/settings/SettingsContext";
 import type {
   CenterConvention,
   DisplayColoring,
   MagNormalize,
 } from "@/lib/settings/types";
+import { ToggleGroup, ToggleItem } from "./ui/ToggleGroup";
+import { CheckboxOption } from "./ui/CheckboxOption";
+import { DropdownSelect } from "./ui/DropdownSelect";
 
 const nav = [{ href: "/draw", label: "2D Draw" }];
 
@@ -30,12 +34,12 @@ function NavLink({
       href={href}
       onClick={onClick}
       className={[
-        "group relative px-1 py-2 text-base sm:text-lg lg:text-xl transition font-serif font-semibold",
+        "group relative px-1 py-2 font-serif font-semibold transition",
+        "text-base sm:text-lg lg:text-xl",
         active ? "text-fg" : "text-fg/70 hover:text-fg",
       ].join(" ")}
     >
       {label}
-      {/* underline bar */}
       <span
         className={[
           "pointer-events-none absolute left-0 right-0 -bottom-1 h-0.5 transition-all duration-300",
@@ -46,7 +50,6 @@ function NavLink({
   );
 }
 
-// Bigger, clearer gear (Heroicons-style)
 function GearIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -61,6 +64,30 @@ function GearIcon({ className }: { className?: string }) {
   );
 }
 
+function HeaderPanel({
+  title,
+  actions,
+  children,
+}: {
+  title: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={[
+        "min-w-0 rounded-xl border border-border bg-card p-2 shadow-lg sm:p-3",
+      ].join(" ")}
+    >
+      <div className="flex items-center justify-between gap-2 pb-2">
+        <span className="font-semibold leading-none">{title}</span>
+        {actions}
+      </div>
+      <div className="grid gap-2">{children}</div>
+    </div>
+  );
+}
+
 export default function Header() {
   const pathname = usePathname();
   const { settings, setSettings } = useSettings();
@@ -69,9 +96,8 @@ export default function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const mobilePanelRef = useRef<HTMLDivElement | null>(null);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
 
-  // Click-outside to close dropdown/mobile panel
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node | null;
@@ -79,12 +105,8 @@ export default function Header() {
       if (dropdownOpen && dropdownRef.current && t && !dropdownRef.current.contains(t)) {
         setDropdownOpen(false);
       }
-      if (
-        mobileOpen &&
-        mobilePanelRef.current &&
-        t &&
-        !mobilePanelRef.current.contains(t)
-      ) {
+
+      if (mobileOpen && mobileMenuRef.current && t && !mobileMenuRef.current.contains(t)) {
         setMobileOpen(false);
       }
     };
@@ -99,19 +121,18 @@ export default function Header() {
       center: settings.center,
       magNormalize: settings.magNormalize,
     }),
-    [settings.coloring, settings.center, settings.magNormalize],
+    [settings.center, settings.coloring, settings.magNormalize],
   );
 
   const isSettingsPage = pathname === "/settings";
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur">
-      <div className="mx-auto flex min-h-17.5 w-full items-center justify-between px-6 ">
-        {/* Left: title */}
-        <h1 className="min-w-0 truncate text-3xl sm:text-2xl lg:text-3xl text-fg font-serif">
+      <div className="mx-auto flex min-h-17.5 w-full items-center gap-3 px-4 sm:px-6">
+        <h1 className="min-w-0 flex-1 text-fg font-serif">
           <Link
             href="/"
-            className="flex items-center gap-5"
+            className="flex min-w-0 items-center gap-3 sm:gap-5"
             onClick={() => {
               setMobileOpen(false);
               setDropdownOpen(false);
@@ -119,20 +140,20 @@ export default function Header() {
           >
             <Image
               src="/silly-fourier-square.png"
-              alt="Fourier’s Playground logo"
+              alt="Fourier's Playground logo"
               width={60}
               height={60}
               priority
-              className="select-none"
+              className="h-11 w-11 shrink-0 select-none sm:h-[60px] sm:w-[60px]"
             />
-            <span>Fourier’s Playground</span>
+            <span className="min-w-0 text-[clamp(0.95rem,3vw,2rem)] leading-tight sm:text-[clamp(1.2rem,3vw,2rem)]">
+              Fourier&apos;s Playground
+            </span>
           </Link>
         </h1>
 
-        {/* Right: ALL nav + settings aligned together */}
-        <div className="ml-auto flex items-center gap-6">
-          {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-8 px-12">
+        <div className="ml-auto flex items-center gap-3 sm:gap-6">
+          <nav className="hidden lg:flex items-center gap-8 px-6">
             {nav.map((item) => (
               <NavLink
                 key={item.href}
@@ -145,7 +166,7 @@ export default function Header() {
               />
             ))}
           </nav>
-          {/* Settings dropdown trigger (no outline, underline when on /settings) */}
+
           <div ref={dropdownRef} className="relative">
             <button
               type="button"
@@ -153,16 +174,14 @@ export default function Header() {
               aria-expanded={dropdownOpen}
               onClick={() => setDropdownOpen((v) => !v)}
               className={[
-                "relative px-1 py-2 text-fg/70 hover:text-fg transition",
+                "relative px-1 py-2 text-fg/70 transition hover:text-fg",
                 dropdownOpen ? "text-fg" : "",
               ].join(" ")}
               title="Settings"
             >
               <span className="inline-flex items-center gap-2">
-                <GearIcon className="h-7 w-7 fill-brand-2 " />
+                <GearIcon className="h-7 w-7 fill-brand-2" />
               </span>
-
-              {/* underline bar (selected when on settings page) */}
               <span
                 className={[
                   "pointer-events-none absolute left-0 right-0 -bottom-1 h-0.5 transition-all duration-300",
@@ -171,196 +190,125 @@ export default function Header() {
               />
             </button>
 
-            {/* {dropdownOpen && (
-              <div
-                role="menu"
-                className="absolute right-0 top-11 z-50 w-85 rounded-md border border-fg/10 bg-bg p-4 shadow-lg "
-              >
-                <div className="mt-4 grid grid-cols-1 gap-3">
-                  <div>
-                    <div className={labelClass}>Canvas Origin</div>
-                    <select
-                      className={selectClass}
-                      value={quick.center}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          center: e.target.value as CenterConvention,
-                        }))
-                      }
-                    >
-                      <option value="centerPixel">Bottom-right center pixel</option>
-                      <option value="centerBetween">Between middle pixels</option>
-                      <option value="topLeft">Top-left pixel</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <div className={labelClass}>DFT shift</div>
-                    <select
-                      className={selectClass}
-                      value={quick.shift}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          shift: e.target.value as ShiftConvention,
-                        }))
-                      }
-                    >
-                      <option value="shifted">Shifted (DC centered)</option>
-                      <option value="unshifted">Unshifted (DC at top-left)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <div className={labelClass}>Magnitude Scale</div>
-                    <select
-                      className={selectClass}
-                      value={quick.magScale}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          magScale: e.target.value as MagScale,
-                        }))
-                      }
-                    >
-                      <option value="linear">Linear</option>
-                      <option value="log">Log (log1p)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <div className={labelClass}>Normalization</div>
-                    <select
-                      className={selectClass}
-                      value={quick.normalization}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          normalization: e.target.value as FFTNormalization,
-                        }))
-                      }
-                    >
-                      <option value="forward">Forward (1/N)</option>
-                      <option value="inverse">Inverse (1/N)</option>
-                      <option value="unitary">Unitary (1/√N on both)</option>
-                      <option value="none">None</option>
-                    </select>
-                  </div>
-
-                  <div className="pt-2">
-                    <Link
-                      href="/settings"
-                      className="block w-full rounded-md bg-fg/5 px-3 py-2 text-center text-sm text-fg/80 hover:bg-fg/10 hover:text-fg transition"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      Open full settings
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )} */}
             {dropdownOpen && (
-              <div
-                role="menu"
-                className="absolute right-0 top-11 z-50 w-70 rounded-2xl border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur"
-              >
-                {/* header */}
-                <div className="mb-3 flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-fg">Quick settings</div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-fg/60 hover:bg-muted hover:text-fg transition"
-                    aria-label="Close"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M6 6l12 12M18 6L6 18" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3">
-                  {/* Coloring */}
-                  <div className="rounded-xl border border-border/30 bg-bg/40 p-3">
-                    <div className="text-xs font-medium text-fg/70">Theme</div>
-                    <select
-                      className="mt-2 w-full rounded-lg border border-border/40 bg-muted px-3 py-2 text-sm text-fg outline-none focus:border-border/70 focus:ring-2 focus:ring-brand/15"
-                      value={quick.coloring}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          coloring: e.target.value as DisplayColoring,
-                        }))
-                      }
-                    >
-                      <option value="system">System</option>
-                      <option value="dark">Dark</option>
-                      <option value="light">Light</option>
-                    </select>
-                  </div>
-
-                  {/* Canvas Origin */}
-                  <div className="rounded-xl border border-border/30 bg-bg/40 p-3">
-                    <div className="text-xs font-medium text-fg/70">Canvas origin</div>
-                    <select
-                      className="mt-2 w-full rounded-lg border border-border/40 bg-muted px-3 py-2 text-sm text-fg outline-none focus:border-border/70 focus:ring-2 focus:ring-brand/15"
-                      value={quick.center}
-                      onChange={(e) =>
-                        setSettings((s) => ({
-                          ...s,
-                          center: e.target.value as CenterConvention,
-                        }))
-                      }
-                    >
-                      <option value="centerPixel">Bottom-right center pixel</option>
-                      <option value="centerBetween">Between middle pixels</option>
-                      <option value="topLeft">Top-left pixel</option>
-                    </select>
-                  </div>
-
-                  {/* Mag Normalize */}
-                  <div className="rounded-xl border border-border/30 bg-bg/40 p-3">
-                    <div className="text-xs font-medium text-fg/70">
-                      Magnitude normalize
+              <div role="menu" className="absolute right-0 top-11 z-50 w-82">
+                <HeaderPanel
+                  title="Quick Settings"
+                  actions={
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href="/settings"
+                        className="inline-flex h-8 items-center justify-center rounded border border-border/80 bg-card px-2 shadow-sm transition hover:bg-fg/10 active:scale-95"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Full settings
+                      </Link>
+                      <button
+                        type="button"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded border border-border/80 bg-card shadow-sm transition hover:bg-fg/10 active:scale-95"
+                        aria-label="Close"
+                        onClick={() => setDropdownOpen(false)}
+                        title="Close"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-5 w-5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M6 6l12 12M18 6L6 18" />
+                        </svg>
+                      </button>
                     </div>
-                    <select
-                      className="mt-2 w-full rounded-lg border border-border/40 bg-muted px-3 py-2 text-sm text-fg outline-none focus:border-border/70 focus:ring-2 focus:ring-brand/15"
-                      value={quick.magNormalize}
-                      onChange={(e) =>
+                  }
+                >
+                  <DropdownSelect
+                    label="Canvas Origin"
+                    className="grid w-full gap-1 rounded-xl border border-border/60 bg-card px-3 py-2 shadow-sm"
+                    value={quick.center}
+                    onChange={(v) =>
+                      setSettings((s) => ({
+                        ...s,
+                        center: v as CenterConvention,
+                      }))
+                    }
+                    options={[
+                      { value: "centerPixel", label: "Bottom-right center pixel" },
+                      { value: "centerBetween", label: "Between middle pixels" },
+                      { value: "topLeft", label: "Top-left pixel" },
+                    ]}
+                  />
+
+                  <div className="grid gap-1 rounded-xl border border-border/60 bg-card px-3 py-2 shadow-sm">
+                    <CheckboxOption
+                      id="magnitude-normalization"
+                      checked={quick.magNormalize === "max"}
+                      onCheckedChange={() => {
+                        const next = quick.magNormalize === "max" ? "none" : "max";
                         setSettings((s) => ({
                           ...s,
-                          magNormalize: e.target.value as MagNormalize,
-                        }))
-                      }
-                    >
-                      <option value="max">Normalize to max</option>
-                      <option value="none">No normalization</option>
-                    </select>
+                          magNormalize: next as MagNormalize,
+                        }));
+                      }}
+                      label="Display normalized DFT magnitude."
+                      selectedPreview="DFT magnitude is normalized to its maximum."
+                      unselectedPreview="DFT magnitude is unnormalized."
+                    />
                   </div>
 
-                  {/* footer buttons */}
-                  <div className="mt-1 flex items-center gap-2">
-                    <Link
-                      href="/settings"
-                      className="flex-1 rounded-xl border border-border/40 bg-muted px-3 py-2 text-center text-sm text-fg/80 hover:text-fg hover:bg-muted/80 transition"
-                      onClick={() => setDropdownOpen(false)}
+                  <div className="grid grid-cols-3 gap-2 pt-1">
+                    <ToggleGroup
+                      height={34}
+                      className="col-span-2 w-full min-w-0 bg-card shadow-sm"
                     >
-                      Full settings
-                    </Link>
+                      <ToggleItem
+                        active={quick.coloring === "light"}
+                        onClick={() =>
+                          setSettings((s) => ({
+                            ...s,
+                            coloring: "light" as DisplayColoring,
+                          }))
+                        }
+                        title="Set theme to light."
+                        isFirst
+                        className="w-[25%]"
+                      >
+                        <Sun className="h-6 w-6" />
+                      </ToggleItem>
+                      <ToggleItem
+                        active={quick.coloring === "dark"}
+                        onClick={() =>
+                          setSettings((s) => ({
+                            ...s,
+                            coloring: "dark" as DisplayColoring,
+                          }))
+                        }
+                        title="Set theme to dark."
+                        className="w-[25%]"
+                      >
+                        <Moon className="h-6 w-6" />
+                      </ToggleItem>
+                      <ToggleItem
+                        active={quick.coloring === "system"}
+                        onClick={() =>
+                          setSettings((s) => ({
+                            ...s,
+                            coloring: "system" as DisplayColoring,
+                          }))
+                        }
+                        title="Set theme to OS default."
+                        className="w-[50%] text-sm"
+                        padX={0}
+                      >
+                        OS Default
+                      </ToggleItem>
+                    </ToggleGroup>
 
                     <button
                       type="button"
-                      className="rounded-xl bg-brand px-3 py-2 text-sm text-header-txt hover:opacity-90 transition"
+                      className="inline-flex items-center justify-center rounded border border-border/80 bg-brand-2 px-2 text-brand-contrast shadow-sm transition hover:bg-brand active:scale-95"
+                      style={{ height: 34 }}
                       onClick={() => {
                         setSettings((s) => ({
                           ...s,
@@ -374,90 +322,78 @@ export default function Header() {
                       Reset
                     </button>
                   </div>
-                </div>
+                </HeaderPanel>
               </div>
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            className="lg:hidden inline-flex h-9 w-9 items-center justify-center text-fg/80 hover:text-fg transition"
-            aria-label="Open menu"
-            aria-expanded={mobileOpen}
-            onClick={() => setMobileOpen(true)}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-7 w-7"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+          <div ref={mobileMenuRef} className="relative lg:hidden">
+            <button
+              type="button"
+              className="inline-flex h-9 w-9 items-center justify-center text-fg/80 transition hover:text-fg"
+              aria-label="Open menu"
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen((v) => !v)}
             >
-              <path d="M4 7h16M4 12h16M4 17h16" />
-            </svg>
-          </button>
+              <svg
+                viewBox="0 0 24 24"
+                className="h-7 w-7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Mobile overlay + panel */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-bg/50" />
-          <div
-            ref={mobilePanelRef}
-            className="absolute left-0 top-0 h-full w-80 max-w-[85vw] border-r border-fg/10 bg-bg/90 p-4 shadow-xl backdrop-blur"
-          >
-            <div className="flex items-center justify-between">
-              <Link
-                href="/"
-                className="truncate font-semibold tracking-tight text-lg text-fg"
-                onClick={() => setMobileOpen(false)}
-              >
-                Fourier Transform Visualizer
-              </Link>
-
-              <button
-                type="button"
-                aria-label="Close menu"
-                className="inline-flex h-9 w-9 items-center justify-center text-fg/80 hover:text-fg transition"
-                onClick={() => setMobileOpen(false)}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-7 w-7"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="mt-6 space-y-1">
-              {nav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-bg/55 backdrop-blur-sm" />
+          <div className="absolute inset-y-0 right-0 flex w-full max-w-sm items-start justify-end p-3 sm:p-4">
+            <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-3 shadow-lg">
+              <div className="flex items-center justify-between gap-2 pb-2">
+                <span className="font-semibold leading-none">Menu</span>
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded border border-border/80 bg-card shadow-sm transition hover:bg-fg/10 active:scale-95"
+                  aria-label="Close menu"
                   onClick={() => setMobileOpen(false)}
-                  className="block px-2 py-2 text-lg text-fg/80 hover:text-fg"
                 >
-                  {item.label}
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="grid gap-2">
+                {nav.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="inline-flex items-center justify-between rounded-lg border border-border/60 bg-card px-3 py-2 text-base font-medium text-fg/80 shadow-sm transition hover:bg-fg/10 hover:text-fg"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+
+                <Link
+                  href="/settings"
+                  onClick={() => setMobileOpen(false)}
+                  className="inline-flex items-center justify-between rounded-lg border border-border/60 bg-card px-3 py-2 text-base font-medium text-fg/80 shadow-sm transition hover:bg-fg/10 hover:text-fg"
+                >
+                  Settings
                 </Link>
-              ))}
-
-              <Link
-                href="/settings"
-                onClick={() => setMobileOpen(false)}
-                className="block px-2 py-2 text-lg text-fg/80 hover:text-fg"
-              >
-                Settings
-              </Link>
-            </div>
-
-            <div className="mt-6 border-t border-fg/10 pt-4 text-xs text-fg/60">
-              Tip: use the gear icon for quick settings.
+              </div>
             </div>
           </div>
         </div>

@@ -74,6 +74,7 @@ type MagnitudeCanvasProps = {
   keyContent?: React.ReactNode;
   frameInsetPx?: number;
   onChromePxChange?: (px: number) => void;
+  showResizeHandle?: boolean;
 };
 
 export default function MagnitudeCanvas({
@@ -87,6 +88,7 @@ export default function MagnitudeCanvas({
   keyContent,
   frameInsetPx,
   onChromePxChange,
+  showResizeHandle,
 }: MagnitudeCanvasProps) {
   const fallbackRef = useRef<HTMLCanvasElement | null>(null);
   const refToUse = canvasRef ?? fallbackRef;
@@ -105,6 +107,7 @@ export default function MagnitudeCanvas({
       keyContent={keyContent}
       frameInsetPx={frameInsetPx}
       onChromePxChange={onChromePxChange}
+      showResizeHandle={showResizeHandle}
       canvas={
         <canvas
           ref={refToUse}
