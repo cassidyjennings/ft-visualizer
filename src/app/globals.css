@@ -92,10 +92,15 @@
 @layer base {
   html {
     scrollbar-gutter: stable;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply bg-bg text-fg font-sans;
+  }
+
+  * {
+    box-sizing: border-box;
   }
 
   h1,

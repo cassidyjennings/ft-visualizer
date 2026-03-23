@@ -89,13 +89,9 @@ function Select({
 }
 
 function Segmented({
-  value,
-  onValueChange,
   disabled,
   children,
 }: {
-  value: string;
-  onValueChange: (v: string) => void;
   disabled?: boolean;
   children: React.ReactNode;
 }) {
@@ -103,29 +99,36 @@ function Segmented({
     <div
       className={cx(
         "inline-flex rounded-md border bg-background overflow-hidden",
-        "divide-x",
         disabled && "opacity-60",
       )}
     >
-      <ToggleGroup
-        type="single"
-        value={value}
-        onValueChange={(v) => {
-          if (!v || disabled) return;
-          onValueChange(v);
-        }}
-        className="flex"
-      >
+      <ToggleGroup height={40} className="flex">
         {children}
       </ToggleGroup>
     </div>
   );
 }
 
-function SegItem({ value, children }: { value: string; children: React.ReactNode }) {
+function SegItem({
+  value,
+  currentValue,
+  onSelect,
+  disabled,
+  children,
+}: {
+  value: string;
+  currentValue: string;
+  onSelect: (value: string) => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <ToggleItem
-      value={value}
+      active={currentValue === value}
+      onClick={() => {
+        if (disabled) return;
+        onSelect(value);
+      }}
       className={cx(
         "rounded-none border-0 px-3 py-2 text-sm font-medium",
         "text-foreground/85 hover:bg-muted",
@@ -250,13 +253,21 @@ export default function SettingsPage() {
               description="Use log for better visibility when values span a large range."
             />
             <Segmented
-              value={settings.magScale}
-              onValueChange={(v) =>
-                setSettings((s) => ({ ...s, magScale: v as MagScale }))
-              }
             >
-              <SegItem value="linear">Linear</SegItem>
-              <SegItem value="log">Log (log1p)</SegItem>
+              <SegItem
+                value="linear"
+                currentValue={settings.magScale}
+                onSelect={(v) => setSettings((s) => ({ ...s, magScale: v as MagScale }))}
+              >
+                Linear
+              </SegItem>
+              <SegItem
+                value="log"
+                currentValue={settings.magScale}
+                onSelect={(v) => setSettings((s) => ({ ...s, magScale: v as MagScale }))}
+              >
+                Log (log1p)
+              </SegItem>
             </Segmented>
           </div>
         </Row>
@@ -340,23 +351,35 @@ export default function SettingsPage() {
 
               <div className="space-y-1">
                 <Segmented
-                  value={
-                    (useOS
-                      ? settings.coloring === "dark"
-                        ? "dark"
-                        : "light"
-                      : settings.coloring) as string
-                  }
-                  onValueChange={(v) =>
-                    setSettings((s) => ({ ...s, coloring: v as ColoringMode }))
-                  }
                   disabled={useOS}
                 >
-                  <SegItem value="light">
+                  <SegItem
+                    value="light"
+                    currentValue={
+                      (useOS
+                        ? settings.coloring === "dark"
+                          ? "dark"
+                          : "light"
+                        : settings.coloring) as string
+                    }
+                    onSelect={(v) => setSettings((s) => ({ ...s, coloring: v as ColoringMode }))}
+                    disabled={useOS}
+                  >
                     <Sun className="h-4 w-4" />
                     <span className="sr-only">Light</span>
                   </SegItem>
-                  <SegItem value="dark">
+                  <SegItem
+                    value="dark"
+                    currentValue={
+                      (useOS
+                        ? settings.coloring === "dark"
+                          ? "dark"
+                          : "light"
+                        : settings.coloring) as string
+                    }
+                    onSelect={(v) => setSettings((s) => ({ ...s, coloring: v as ColoringMode }))}
+                    disabled={useOS}
+                  >
                     <Moon className="h-4 w-4" />
                     <span className="sr-only">Dark</span>
                   </SegItem>
