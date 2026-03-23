@@ -218,6 +218,7 @@ export function useSpectraLayout(params?: {
     layoutTop: 0,
     arrowWidth: 0,
     viewportHeight: 0,
+    stackMain: false,
   });
 
   const rawLayoutWidth = Math.floor(layoutRect.width);
@@ -229,42 +230,40 @@ export function useSpectraLayout(params?: {
   const hasDesktopSnapshot = desktopSnapshot.layoutWidth > 0;
   const hasCommittedLayoutForResize =
     committedLayout.layoutWidth > 0 &&
-    committedLayout.resizeVersion === viewport.resizeVersion;
+    committedLayout.resizeVersion === viewport.resizeVersion &&
+    committedLayout.stackMain === rawStackMain;
+  const isDesktopTransition =
+    !rawStackMain && hasDesktopSnapshot && !hasCommittedLayoutForResize;
   const shouldHoldDesktopCommit =
-    !rawStackMain &&
-    hasDesktopSnapshot &&
+    isDesktopTransition &&
     rawControlsHeight > desktopSnapshot.controlsHeight;
 
   useEffect(() => {
     if (
       rawStackMain ||
-      rawLayoutWidth <= 0 ||
-      rawArrowWidth <= 0 ||
       rawControlsHeight <= 0 ||
-      rawLayoutTop <= 0 ||
-      shouldHoldDesktopCommit
+      !hasCommittedLayoutForResize
     ) {
       return;
     }
 
-    const nextViewportHeight = Math.floor(viewport.h);
     const frame = window.requestAnimationFrame(() => {
       setDesktopSnapshot((prev) => {
         if (
-          prev.layoutWidth === rawLayoutWidth &&
-          prev.layoutTop === rawLayoutTop &&
-          prev.arrowWidth === rawArrowWidth &&
-          prev.viewportHeight === nextViewportHeight &&
+          prev.layoutWidth === committedLayout.layoutWidth &&
+          prev.layoutTop === committedLayout.layoutTop &&
+          prev.arrowWidth === committedLayout.arrowWidth &&
+          prev.viewportHeight === committedLayout.viewportHeight &&
           prev.controlsHeight === rawControlsHeight
         ) {
           return prev;
         }
 
         return {
-          layoutWidth: rawLayoutWidth,
-          layoutTop: rawLayoutTop,
-          arrowWidth: rawArrowWidth,
-          viewportHeight: nextViewportHeight,
+          layoutWidth: committedLayout.layoutWidth,
+          layoutTop: committedLayout.layoutTop,
+          arrowWidth: committedLayout.arrowWidth,
+          viewportHeight: committedLayout.viewportHeight,
           controlsHeight: rawControlsHeight,
         };
       });
@@ -274,13 +273,13 @@ export function useSpectraLayout(params?: {
       window.cancelAnimationFrame(frame);
     };
   }, [
-    rawArrowWidth,
+    committedLayout.arrowWidth,
+    committedLayout.layoutTop,
+    committedLayout.layoutWidth,
+    committedLayout.viewportHeight,
+    hasCommittedLayoutForResize,
     rawControlsHeight,
-    rawLayoutTop,
-    rawLayoutWidth,
     rawStackMain,
-    shouldHoldDesktopCommit,
-    viewport.h,
   ]);
 
   useEffect(() => {
@@ -308,6 +307,7 @@ export function useSpectraLayout(params?: {
         layoutTop: rawLayoutTop,
         arrowWidth: rawArrowWidth,
         viewportHeight: Math.floor(viewport.h),
+        stackMain: rawStackMain,
       });
     });
 
@@ -322,12 +322,13 @@ export function useSpectraLayout(params?: {
     rawControlsHeight,
     rawLayoutTop,
     rawLayoutWidth,
+    rawStackMain,
     shouldHoldDesktopCommit,
     viewport.h,
     viewport.resizeVersion,
   ]);
 
-  const shouldUseDesktopSnapshot = !rawStackMain && shouldHoldDesktopCommit;
+  const shouldUseDesktopSnapshot = isDesktopTransition;
   const layoutWidth = shouldUseDesktopSnapshot
     ? desktopSnapshot.layoutWidth
     : hasCommittedLayoutForResize
