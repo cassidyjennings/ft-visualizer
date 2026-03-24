@@ -251,9 +251,9 @@ export default function Header() {
                             magNormalize: next as MagNormalize,
                           }));
                         }}
-                        label="Display normalized DFT magnitude."
-                        selectedPreview="DFT magnitude is normalized to its maximum."
-                        unselectedPreview="DFT magnitude is unnormalized."
+                        label="Normalize DFT magnitude."
+                        selectedPreview="Result: DFT magnitude is normalized to its maximum."
+                        unselectedPreview="Result: DFT magnitude is unnormalized."
                       />
                     </div>
 

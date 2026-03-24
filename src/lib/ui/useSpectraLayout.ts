@@ -374,10 +374,7 @@ export function useSpectraLayout(params?: {
     shouldUseDesktopControlsBaseline
       ? desktopSnapshot.controlsHeight
       : rawControlsHeight;
-  const stableControlsHeightPx =
-    !stackMain && hasDesktopSnapshot
-      ? Math.max(desktopSnapshot.controlsHeight, desktopControlsHeightPx)
-      : desktopControlsHeightPx;
+  const stableControlsHeightPx = desktopControlsHeightPx;
   const maxCanvasHeight = stackMain
     ? Math.max(0, remainingViewportHeight - drawOuterChromePx - HEIGHT_SAFETY_MARGIN_PX)
     : Math.max(0, remainingViewportHeight - stableControlsHeightPx - HEIGHT_SAFETY_MARGIN_PX);
