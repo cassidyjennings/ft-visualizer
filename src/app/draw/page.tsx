@@ -203,7 +203,6 @@ export default function DrawPage() {
             isDark={isDark}
             gridRef={canvasGridRef}
             handleClear={handleClear}
-            displaySize={displaySize}
             outerSize={gridOuterSize}
             size={selectedSize}
             setSize={setSelectedSize}

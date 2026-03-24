@@ -1,6 +1,6 @@
 "use client";
 
-import React, { forwardRef, useEffect, useMemo, useState } from "react";
+import React, { forwardRef, useEffect, useState } from "react";
 
 import type { BrushSettings } from "@/lib/image/brush";
 import type { CanvasGridHandle } from "@/components/canvases/CanvasGrid";
@@ -18,10 +18,6 @@ import {
 } from "@/components/icons/brushIcons";
 import { EyeClosedIcon, EyeOpenIcon } from "@/components/icons/showHideIcons";
 
-function clamp(v: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, v));
-}
-
 function format01(v255: number) {
   const v = v255 / 255;
   if (v === 0 || v === 1) return String(v);
@@ -33,7 +29,6 @@ type Props = {
 
   gridRef: React.RefObject<CanvasGridHandle | null>;
   handleClear: () => void;
-  displaySize: number;
   outerSize: number;
 
   allowedSizes?: number[];
@@ -74,7 +69,6 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
     isDark,
     gridRef,
     handleClear,
-    displaySize,
     outerSize,
     allowedSizes = [2, 4, 8, 16, 32, 64],
     size,
@@ -92,21 +86,15 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const ui = useMemo(() => {
-    // Scale derived from canvas display size
-    const scale = clamp(displaySize / 560, 0.7, 0.95);
-    // UI sizes derived from scale
-    const controlH = Math.round(clamp(34 * scale, 26, 36));
-    const iconPx = Math.round(controlH * 0.6);
-    const btnPx = Math.round(clamp(11 * scale, 8, 11));
-    const togglePadPx = Math.round(clamp(9 * scale, 7, 10));
-    const fontPx = Math.round(clamp(15 * scale, 12, 15));
-
-    const sliderMaxW = Math.round(clamp(440 * scale, 200, 440));
-    const shapeW = Math.round(clamp(420 * scale, 220, 420));
-
-    return { scale, controlH, iconPx, btnPx, togglePadPx, fontPx, sliderMaxW, shapeW };
-  }, [displaySize]);
+  const ui = {
+    controlH: 30,
+    iconPx: 18,
+    btnPx: 9,
+    togglePadPx: 8,
+    fontPx: 13,
+    sliderMaxW: 440,
+    shapeW: 420,
+  };
 
   const sliderStyle: CSSVars = isErase
     ? { "--track": "#444", "--thumb": "#666" }
