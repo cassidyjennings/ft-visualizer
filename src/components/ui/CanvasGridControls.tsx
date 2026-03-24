@@ -269,7 +269,7 @@ export default forwardRef<HTMLDivElement, Props>(function CanvasGridControls(
                     <input
                       type="range"
                       min={0}
-                      max={10}
+                      max={size / 2}
                       value={brush.radius}
                       onChange={(e) =>
                         onBrushChange({ ...brush, radius: Number(e.target.value) })
