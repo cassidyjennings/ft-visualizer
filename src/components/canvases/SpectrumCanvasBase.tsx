@@ -96,7 +96,12 @@ export default function SpectrumCanvasBase({
         <div className="absolute inset-0 overflow-visible">
           {inset > 0 ? (
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              <RegalCanvasFrame innerSize={innerPx} frame={Math.max(1, inset)} pad={0} />
+              <RegalCanvasFrame
+                innerSize={innerPx}
+                frame={Math.max(1, inset)}
+                pad={0}
+                detail="standard"
+              />
             </div>
           ) : null}
 

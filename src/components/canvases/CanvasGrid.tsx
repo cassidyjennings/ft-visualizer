@@ -451,6 +451,7 @@ export default forwardRef<CanvasGridHandle, CanvasGridProps>(function CanvasGrid
             innerSize={canvasSize}
             frame={frameThickness}
             pad={framePad}
+            detail="ornate"
           />
         </div>
       )}
