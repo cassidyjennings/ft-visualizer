@@ -15,7 +15,10 @@ import { CheckboxOption } from "./ui/CheckboxOption";
 import { DropdownSelect } from "./ui/DropdownSelect";
 import { Sun, Moon, ExternalLink } from "lucide-react";
 
-const nav = [{ href: "/draw", label: "2D Draw" }];
+const nav = [
+  { href: "/draw", label: "2D Draw" },
+  { href: "/about", label: "About" },
+];
 
 function NavLink({
   href,
@@ -122,14 +125,14 @@ export default function Header() {
             }}
           >
             <Image
-              src="/silly-fourier-square.png"
+              src="/fourier-face.png"
               alt="Fourier’s Playground logo"
-              width={60}
-              height={60}
+              width={50}
+              height={50}
               priority
-              className="select-none"
+              className="select-none p-1"
             />
-            <span>Fourier’s Playground</span>
+            {mobileOpen ? <span>’s Playground</span> : <span>Fourier’s Playground</span>}
           </Link>
         </h1>
 
