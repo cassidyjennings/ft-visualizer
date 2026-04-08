@@ -97,11 +97,11 @@ export default function AboutPage() {
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 py-6 px-6 sm:px-6 lg:px-0">
         <section className="space-y-5">
-          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-brand sm:text-base">
+          {/* <p className="text-sm font-semibold uppercase tracking-[0.28em] text-brand sm:text-base">
             About Fourier Transforms
-          </p>
+          </p> */}
           <h1 className="max-w-4xl text-4xl leading-tight text-fg sm:text-5xl lg:text-[4.2rem]">
-            Off the Playground.
+            Learn Fourier Transforms.
           </h1>
           <p className="max-w-4xl text-lg leading-8 text-fg/80 sm:text-xl">
             If you want to learn more about the Fourier Transform, I highly recommend the
