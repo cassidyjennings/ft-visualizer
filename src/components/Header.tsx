@@ -13,11 +13,13 @@ import type {
 import { ToggleGroup, ToggleItem } from "./ui/ToggleGroup";
 import { CheckboxOption } from "./ui/CheckboxOption";
 import { DropdownSelect } from "./ui/DropdownSelect";
-import { Sun, Moon, ExternalLink } from "lucide-react";
+import { Sun, Moon, ExternalLink, ChevronDown, ArrowRight } from "lucide-react";
 
-const nav = [
-  { href: "/draw", label: "2D Draw" },
-  { href: "/about", label: "About" },
+const nav = [{ href: "/draw", label: "2D Draw" }];
+
+const aboutItems = [
+  { href: "/about-transform", label: "Fourier Transform" },
+  { href: "/about-playground", label: "Fourier's Playground" },
 ];
 
 function NavLink({
@@ -65,6 +67,110 @@ function GearIcon({ className }: { className?: string }) {
     >
       <path d="m366 237l45 35q7 6 3 14l-43 74q-4 8-13 4l-53-21q-18 13-36 21l-8 56q-1 9-11 9h-85q-9 0-11-9l-8-56q-19-8-36-21l-53 21q-9 3-13-4L1 286q-4-8 3-14l45-35q-1-12-1-21t1-21L4 160q-7-6-3-14l43-74q5-8 13-4l53 21q18-13 36-21l8-56q2-9 11-9h85q10 0 11 9l8 56q19 8 36 21l53-21q9-3 13 4l43 74q4 8-3 14l-45 35q2 12 2 21t-2 21zm-158.5 54q30.5 0 52.5-22t22-53t-22-53t-52.5-22t-52.5 22t-22 53t22 53t52.5 22z" />
     </svg>
+  );
+}
+
+function AboutDropdown({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const active = aboutItems.some((item) => pathname === item.href);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (open && ref.current && !(ref.current as Node).contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative self-stretch flex items-center">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={[
+          "group relative flex items-center gap-1 px-1 py-2 sm:text-lg lg:text-xl transition font-serif font-semibold",
+          active ? "text-fg" : "text-fg/70 hover:text-fg",
+        ].join(" ")}
+      >
+        <span className="relative inline-block">
+          {/* Invisible spacer always reserves the full "About..." width */}
+          <span className="invisible select-none" aria-hidden>About...</span>
+
+          {/* Visible text layer */}
+          <span className="absolute inset-0 flex items-center justify-start">
+            {/*
+              "About" sits centered when closed by shifting right half the dots' width (~8px).
+              When opened it slides back to x=0 in sync with the dots popping in.
+            */}
+            <span
+              style={{
+                transform: open ? "translateX(0)" : "translateX(8px)",
+                transition: "transform 220ms ease",
+              }}
+            >
+              About
+            </span>
+            {/* Dots stagger in after "About" starts sliding */}
+            <span aria-hidden className="flex items-center">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  style={{
+                    opacity: open ? 1 : 0,
+                    transform: open ? "translateY(0)" : "translateY(4px)",
+                    transition: "opacity 130ms ease, transform 130ms ease",
+                    transitionDelay: open ? `${50 + i * 80}ms` : "0ms",
+                  }}
+                >
+                  .
+                </span>
+              ))}
+            </span>
+          </span>
+
+          {/* Underline bar */}
+          <span
+            className={[
+              "pointer-events-none absolute left-0 right-0 -bottom-1 h-0.5 transition-all duration-300",
+              active ? "w-full bg-brand-2" : "w-0 bg-fg/0 group-hover:w-full",
+            ].join(" ")}
+          />
+        </span>
+        <ChevronDown
+          className={[
+            "h-4 w-4 transition-transform duration-200",
+            open ? "rotate-180" : "",
+          ].join(" ")}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-6 z-50 min-w-60">
+          <div className="rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-lg p-1.5">
+            {aboutItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => {
+                  setOpen(false);
+                  onNavigate?.();
+                }}
+                className={[
+                  "group flex items-center rounded-lg px-4 py-2.5 text-lg font-serif font-semibold transition-colors",
+                  pathname === item.href ? "text-brand" : "text-fg/80 hover:text-brand",
+                ].join(" ")}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -151,9 +257,15 @@ export default function Header() {
                 }}
               />
             ))}
+            <AboutDropdown
+              onNavigate={() => {
+                setMobileOpen(false);
+                setDropdownOpen(false);
+              }}
+            />
           </nav>
           {/* Settings dropdown trigger (no outline, underline when on /settings) */}
-          <div ref={dropdownRef} className="relative">
+          <div ref={dropdownRef} className="relative self-stretch flex items-center mr-2">
             <button
               type="button"
               aria-haspopup="menu"
@@ -179,12 +291,12 @@ export default function Header() {
             </button>
 
             {dropdownOpen && (
-              <div role="menu" className="absolute right-0 top-11 z-50 w-82">
+              <div role="menu" className="absolute right-0 top-full mt-6 z-50 w-82">
                 <div
                   className={[
                     "min-w-0 shadow-lg",
                     "rounded-xl border border-border",
-                    "bg-card",
+                    "bg-card/95 backdrop-blur-md",
                     "p-2 sm:p-3",
                   ].join(" ")}
                 >
@@ -400,6 +512,25 @@ export default function Header() {
                   {item.label}
                 </Link>
               ))}
+
+              <div>
+                <span className="block px-2 py-2 text-lg font-semibold font-serif text-fg/50 text-sm uppercase tracking-wider">
+                  About
+                </span>
+                {aboutItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={[
+                      "block px-4 py-2 text-base text-fg/80 hover:text-fg",
+                      pathname === item.href ? "text-brand" : "",
+                    ].join(" ")}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
 
               <Link
                 href="/settings"

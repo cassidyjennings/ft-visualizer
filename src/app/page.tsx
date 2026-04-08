@@ -24,13 +24,12 @@ export default function HomePage() {
 
           <div className="mt-6 space-y-6">
             <h1 className="text-4xl leading-[1.04] text-fg sm:text-5xl lg:text-[4.85rem]">
-              Everything is made of frequencies
+              Welcome!
             </h1>
             <p className="mx-auto max-w-3xl text-lg leading-8 text-fg/80 sm:text-xl">
-              From music to images, complex signals can be broken down into
-              combinations of repeating patterns. Joseph Fourier proposed that
-              any signal can be expressed as a sum of simple sine and cosine
-              waves.
+              Joseph Fourier proposed that any signal - music, images, electric current,
+              brain waves, and more - can be expressed as a sum of simple sine and cosine
+              waves. Use the tools on this website to play around with this idea.
             </p>
           </div>
 

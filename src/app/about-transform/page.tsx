@@ -174,7 +174,7 @@ export default function AboutPage() {
                     href={resource.companion.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="group block rounded-[1.35rem] border border-border/70 bg-card p-4 shadow-sm transition hover:border-brand/55 hover:bg-bg/85"
+                    className="group block rounded-[1.35rem] border border-border/70 bg-card p-4 shadow-sm transition hover:border-brand/55"
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
                       <h3 className="text-xl text-fg transition group-hover:text-brand">
