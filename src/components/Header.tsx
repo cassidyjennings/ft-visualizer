@@ -15,7 +15,10 @@ import { CheckboxOption } from "./ui/CheckboxOption";
 import { DropdownSelect } from "./ui/DropdownSelect";
 import { Sun, Moon, ExternalLink, ChevronDown, ArrowRight } from "lucide-react";
 
-const nav = [{ href: "/draw", label: "2D Draw" }];
+const nav = [
+  { href: "/axis", label: "1D Axis" },
+  { href: "/grid", label: "2D Grid" },
+];
 
 const aboutItems = [
   { href: "/about-transform", label: "Fourier Transform" },
@@ -98,7 +101,9 @@ function AboutDropdown({ onNavigate }: { onNavigate?: () => void }) {
       >
         <span className="relative inline-block">
           {/* Invisible spacer always reserves the full "About..." width */}
-          <span className="invisible select-none" aria-hidden>About...</span>
+          <span className="invisible select-none" aria-hidden>
+            About...
+          </span>
 
           {/* Visible text layer */}
           <span className="absolute inset-0 flex items-center justify-start">
