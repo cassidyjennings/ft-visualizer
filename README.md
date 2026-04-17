@@ -1,27 +1,38 @@
 # Fourier Transform Visualizer
 
-An interactive web application for building intuition about **Fourier transforms** by drawing grayscale images and exploring their frequency-domain representations.
+An interactive web application for building intuition about **Fourier transforms** through two tools: a 1D signal editor and a 2D image drawing canvas.
 
-Users can draw images pixel-by-pixel, view the **magnitude** and **phase** of the 2D Fourier transform, and experiment with inverse transforms to see how changes in frequency affect the reconstructed image.
-
-The project is designed as an **educational tool** for learning signal processing and image analysis.
+Users can construct or draw signals, compute their Discrete Fourier Transforms, and explore the resulting **magnitude** and **phase** spectra. The project is designed as an **educational tool** for learning signal processing and image analysis.
 
 ---
 
-## Features (Planned & In Progress)
+## Tools
 
-- Draw grayscale images on a pixel grid  
-  - Choose image dimensions (powers of two)
-  - Click or drag to draw
-  - Adjustable grayscale values
-- Visualize the 2D Fourier Transform  
-  - Log-scaled magnitude spectrum
-  - Phase spectrum
-  - Centered (fftshifted) view
-- Inverse Fourier Transform  
-  - Reconstruct images from magnitude and phase
-  - Explore magnitude-only and phase-only reconstructions
+### 1D Axis (`/axis`)
 
+- Build a discrete signal by dragging stems directly on the plot
+- Layer in synthetic signals — sine, cosine, square, and constant — each with adjustable amplitude, coefficient, and period
+- Compute the DFT and view magnitude and phase stem plots side-by-side
+- Configurable N (number of samples), undo/clear, and fftshift toggle
+- Settings control normalization convention, magnitude scale (linear/log), and whether n=0 appears at the left edge or center
+
+### 2D Grid (`/grid`)
+
+- Draw grayscale images on a pixel grid (sizes 2×2 through 64×64, powers of two)
+- Adjustable brush radius and shape; toggle grid overlay; undo with Ctrl+Z
+- Compute the 2D FFT and view magnitude and phase canvases
+- Spectrum panels are independently resizable
+- Dark and light modes invert drawing colors correctly
+- Settings control DC centering (fftshift), normalization, magnitude scale (linear/log), magnitude normalization, and the 2D spatial-origin convention
+
+### Settings (`/settings`)
+
+All settings persist in `localStorage`. Options include:
+- **Theme** — light, dark, or follow OS
+- **DFT normalization** — forward (1/N), inverse (1/N), unitary (1/√N on both), or none
+- **Magnitude scale** — linear or log
+- **Center DC** — shift spectrum so zero-frequency appears at center
+- **Coordinate origins** — 1D axis (left / center); 2D canvas (center pixel, between center pixels, or top-left)
 
 ---
 
@@ -29,23 +40,21 @@ The project is designed as an **educational tool** for learning signal processin
 
 Fourier transforms are often taught abstractly, but intuition comes from interaction.
 
-This tool lets users *draw → transform → reconstruct*, helping answer questions like:
+These tools let users *construct → transform → inspect*, helping answer questions like:
 - What does an edge or pattern look like in the frequency domain?
 - Why is phase so important for structure?
-- How do specific frequencies affect an image?
-
+- How do specific frequencies affect a signal or image?
 
 ---
 
 ## Tech Stack
 
-- Next.js (App Router)
-- React + TypeScript
+- Next.js 16 (App Router)
+- React 19 + TypeScript 5
 - HTML Canvas
-- Web Workers (planned)
-- Tailwind CSS
+- Web Workers (2D FFT runs off the main thread)
+- Tailwind CSS v4
 - Vercel for deployment
-
 
 ---
 
@@ -57,7 +66,6 @@ npm run dev
 ```
 Open http://localhost:3000 in your browser.
 
-
 ---
 
 ## Conventions
@@ -66,11 +74,4 @@ Mathematical and implementation conventions (image format, FFT normalization, vi
 ```bash
 docs/conventions.md
 ```
-
-
----
-
-## License
-
-MIT License
 
