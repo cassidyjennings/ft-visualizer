@@ -4,7 +4,8 @@
       "Bash(npx next:*)",
       "Bash(npx tsc:*)",
       "mcp__Claude_Preview__preview_start",
-      "mcp__Claude_in_Chrome__tabs_context_mcp"
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(cat \"C:\\\\Users\\\\Cassidy\\\\OneDrive - Massachusetts Institute of Technology\\\\Desktop\\\\Personal\\\\ft-visualizer\\\\src\\\\lib\\\\workers\"/*.ts)"
     ]
   }
 }
