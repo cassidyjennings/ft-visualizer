@@ -7,4 +7,5 @@ export const defaultSettings: Settings = {
   magScale: "linear",
   magNormalize: "max",
   normalization: "forward",
+  axis1DOrigin: "left",
 };

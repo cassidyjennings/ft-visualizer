@@ -16,6 +16,11 @@ type StemPlotCanvasProps = {
   stemColor?: string;
   /** Smaller dots and thinner lines for secondary plots */
   compact?: boolean;
+  /**
+   * Integer offset added to every x-axis label.
+   * E.g. xOffset = -Math.floor(N/2) centres the axis so n=0 falls in the middle.
+   */
+  xOffset?: number;
 };
 
 const MARGIN = { top: 10, right: 18, bottom: 34, left: 52 };
@@ -53,6 +58,7 @@ export default function StemPlotCanvas({
   baselineY = 0,
   stemColor,
   compact = false,
+  xOffset = 0,
 }: StemPlotCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -187,7 +193,7 @@ export default function StemPlotCanvas({
       for (let i = 0; i < N; i += step) {
         const x = xPos(i);
         ctx.fillStyle = fg;
-        ctx.fillText(String(i), x, plotY + plotH + 6);
+        ctx.fillText(String(i + xOffset), x, plotY + plotH + 6);
         ctx.beginPath();
         ctx.strokeStyle = fg + "40";
         ctx.lineWidth = 1;
@@ -199,7 +205,7 @@ export default function StemPlotCanvas({
       if ((N - 1) % step !== 0 && N > 1) {
         const x = xPos(N - 1);
         ctx.fillStyle = fg;
-        ctx.fillText(String(N - 1), x, plotY + plotH + 6);
+        ctx.fillText(String(N - 1 + xOffset), x, plotY + plotH + 6);
         ctx.beginPath();
         ctx.strokeStyle = fg + "40";
         ctx.lineWidth = 1;
@@ -283,6 +289,7 @@ export default function StemPlotCanvas({
     N,
     xPos,
     yPos,
+    xOffset,
     themeVersion,
   ]);
 

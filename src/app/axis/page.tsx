@@ -5,11 +5,27 @@ import { useSettings } from "@/lib/settings/SettingsContext";
 import TransformButton from "@/components/ui/TransformButton";
 import StemPlotCanvas from "@/components/dft1d/StemPlotCanvas";
 import SignalControls from "@/components/dft1d/SignalControls";
+import SignalLayerCard from "@/components/dft1d/SignalLayerCard";
 import { dft } from "@/lib/fft/dft";
+import { evaluateMix, sumOtherLayersAt } from "@/lib/signals/evaluate";
+import type { SignalLayer, SignalType } from "@/lib/signals/types";
+import { newLayerId } from "@/lib/signals/types";
+import { Plus } from "lucide-react";
 
-type PresetType = "zero" | "sine" | "cosine" | "square";
+const USER_INPUT_ID = "user-input";
 
 const PI_TICKS = [-Math.PI, -Math.PI / 2, 0, Math.PI / 2, Math.PI];
+
+/**
+ * Circular shift so the zero-frequency bin (index 0) moves to the centre.
+ * Equivalent to NumPy / MATLAB fftshift: shift = ceil(N/2).
+ */
+function fftshift(arr: number[]): number[] {
+  const N = arr.length;
+  if (N === 0) return [];
+  const shift = Math.ceil(N / 2);
+  return [...arr.slice(shift), ...arr.slice(0, shift)];
+}
 
 function formatPi(v: number): string {
   if (Math.abs(v - Math.PI) < 0.01) return "\u03C0";
@@ -19,58 +35,125 @@ function formatPi(v: number): string {
   return "0";
 }
 
+function makeUserInputLayer(): SignalLayer {
+  return {
+    id: USER_INPUT_ID,
+    type: "user-input",
+    amplitude: 1,
+    coefficient: 1,
+    period: 8,
+  };
+}
+
+function makeDefaultLayer(type: SignalType = "sine", period: number = 8): SignalLayer {
+  return {
+    id: newLayerId(),
+    type,
+    amplitude: 1,
+    coefficient: 1,
+    period,
+  };
+}
+
 export default function Axis1DPage() {
   const { settings } = useSettings();
 
   const [N, setN] = useState(16);
-  const [period, setPeriod] = useState(8);
-  const [samples, setSamples] = useState<number[]>(() => new Array(16).fill(0));
+  const [layers, setLayers] = useState<SignalLayer[]>([makeUserInputLayer()]);
+  const [userInputData, setUserInputData] = useState<number[]>(
+    () => new Array(16).fill(0),
+  );
+
   const [hasTransformed, setHasTransformed] = useState(false);
   const [dftResult, setDftResult] = useState<{
     real: Float32Array;
     imag: Float32Array;
   } | null>(null);
 
-  // Undo history
+  // Undo history (tracks userInputData changes)
   const [history, setHistory] = useState<number[][]>([]);
-  const samplesRef = useRef(samples);
-  samplesRef.current = samples;
+  const userInputRef = useRef(userInputData);
+  userInputRef.current = userInputData;
 
   const pushHistory = useCallback(() => {
-    setHistory((prev) => [...prev.slice(-30), [...samplesRef.current]]);
+    setHistory((prev) => [...prev.slice(-30), [...userInputRef.current]]);
   }, []);
 
   const handleUndo = useCallback(() => {
     setHistory((prev) => {
       if (prev.length === 0) return prev;
       const last = prev[prev.length - 1];
-      setSamples(last);
+      setUserInputData((current) => {
+        // Resize the restored snapshot to match current N so lengths stay in sync
+        if (last.length === current.length) return last;
+        const resized = new Array(current.length).fill(0);
+        for (let i = 0; i < Math.min(last.length, current.length); i++) {
+          resized[i] = last[i];
+        }
+        return resized;
+      });
       return prev.slice(0, -1);
     });
   }, []);
 
   const handleClear = useCallback(() => {
     pushHistory();
-    setSamples((prev) => new Array(prev.length).fill(0));
+    setUserInputData((prev) => new Array(prev.length).fill(0));
   }, [pushHistory]);
 
-  // Handle N change — preserve existing values, new stems default to 0
-  const handleNChange = useCallback(
-    (newN: number) => {
-      setN(newN);
-      setSamples((prev) => {
-        const next = new Array(newN).fill(0);
-        for (let i = 0; i < Math.min(prev.length, newN); i++) {
-          next[i] = prev[i];
-        }
-        return next;
-      });
-      if (period > newN) setPeriod(newN);
-    },
-    [period],
+  // Handle N change — preserve user input values, new stems default to 0
+  const handleNChange = useCallback((newN: number) => {
+    setN(newN);
+    setUserInputData((prev) => {
+      const next = new Array(newN).fill(0);
+      for (let i = 0; i < Math.min(prev.length, newN); i++) {
+        next[i] = prev[i];
+      }
+      return next;
+    });
+    // Clamp layer periods to new N
+    setLayers((prev) =>
+      prev.map((l) => (l.period > newN ? { ...l, period: newN } : l)),
+    );
+  }, []);
+
+  // Compute mixed samples from all layers
+  const samples = useMemo(
+    () => evaluateMix(layers, N, userInputData),
+    [layers, N, userInputData],
   );
 
-  // Handle individual stem drag — push history on drag start
+  // Compute y-axis range from actual signal data, snapped to nice values
+  const yRange = useMemo(() => {
+    let peak = 0;
+    for (const v of samples) {
+      const abs = Math.abs(v);
+      if (abs > peak) peak = abs;
+    }
+    // Snap to next nice round number (0.5, 1, 1.5, 2, 3, 4, 5, ...)
+    const raw = peak * 1.1;
+    if (raw <= 0.5) return 1;
+    if (raw <= 1) return 1;
+    if (raw <= 1.5) return 1.5;
+    if (raw <= 2) return 2;
+    return Math.ceil(raw);
+  }, [samples]);
+
+  const inputYTicks = useMemo(() => {
+    const bound = yRange;
+    const ticks: number[] = [];
+    const count = 4;
+    for (let i = 0; i <= count; i++) {
+      ticks.push(-bound + (i / count) * 2 * bound);
+    }
+    return ticks;
+  }, [yRange]);
+
+  // Keep a ref to samples for DFT
+  const samplesRef = useRef(samples);
+  samplesRef.current = samples;
+
+  // Handle individual stem drag — updates userInputData
   const isDragging = useRef(false);
   const handleDrag = useCallback(
     (index: number, value: number) => {
@@ -78,16 +161,22 @@ export default function Axis1DPage() {
         isDragging.current = true;
         pushHistory();
       }
-      setSamples((prev) => {
+      // Compute what the other layers contribute at this index,
+      // then set userInput so that the mixed value = dragged value
+      const otherSum = sumOtherLayersAt(layers, N, index);
+      setUserInputData((prev) => {
         const next = [...prev];
-        next[index] = value;
+        // Account for user-input amplitude (always 1, but be safe)
+        const uiLayer = layers.find((l) => l.type === "user-input");
+        const amp = uiLayer?.amplitude ?? 1;
+        next[index] = amp !== 0 ? (value - otherSum) / amp : 0;
         return next;
       });
     },
-    [pushHistory],
+    [pushHistory, layers, N],
   );
 
-  // Reset drag flag on pointer up (globally)
+  // Reset drag flag on pointer up
   useEffect(() => {
     const up = () => {
       isDragging.current = false;
@@ -96,31 +185,23 @@ export default function Axis1DPage() {
     return () => window.removeEventListener("pointerup", up);
   }, []);
 
-  // Apply preset function using current N and period
-  const applyPreset = useCallback(
-    (type: PresetType) => {
-      pushHistory();
-      const newSamples = new Array(N).fill(0);
-      if (type !== "zero") {
-        for (let n = 0; n < N; n++) {
-          const angle = (2 * Math.PI * n) / period;
-          switch (type) {
-            case "sine":
-              newSamples[n] = Math.sin(angle);
-              break;
-            case "cosine":
-              newSamples[n] = Math.cos(angle);
-              break;
-            case "square":
-              newSamples[n] = Math.sign(Math.sin(angle));
-              break;
-          }
-        }
-      }
-      setSamples(newSamples);
+  // Layer management
+  const addLayer = useCallback(
+    (type: SignalType = "sine") => {
+      setLayers((prev) => [...prev, makeDefaultLayer(type, Math.min(8, N))]);
     },
-    [N, period, pushHistory],
+    [N],
   );
+
+  const updateLayer = useCallback((updated: SignalLayer) => {
+    setLayers((prev) =>
+      prev.map((l) => (l.id === updated.id ? updated : l)),
+    );
+  }, []);
+
+  const removeLayer = useCallback((id: string) => {
+    setLayers((prev) => prev.filter((l) => l.id !== id));
+  }, []);
 
   // Compute DFT
   const handleTransform = useCallback(() => {
@@ -169,6 +250,20 @@ export default function Axis1DPage() {
     return { magnitudes: mags, phases: phs, magYMax: yMax, magTicks: ticks };
   }, [dftResult, settings.magScale, settings.magNormalize]);
 
+  // Apply the origin convention for display
+  const isOriginCenter = settings.axis1DOrigin === "center";
+  const xOffset = isOriginCenter ? -Math.floor(N / 2) : 0;
+
+  // For the output plots, shift the bins so DC sits in the centre when requested
+  const displayMagnitudes = useMemo(
+    () => (isOriginCenter && magnitudes ? fftshift(magnitudes) : magnitudes),
+    [isOriginCenter, magnitudes],
+  );
+  const displayPhases = useMemo(
+    () => (isOriginCenter && phases ? fftshift(phases) : phases),
+    [isOriginCenter, phases],
+  );
+
   // Format magnitude tick labels
   const magTickFormat = useCallback(
     (v: number) => {
@@ -181,45 +276,80 @@ export default function Axis1DPage() {
     [settings.magNormalize],
   );
 
+  // Separate user-input layer and other layers for rendering
+  const userInputLayer = layers.find((l) => l.id === USER_INPUT_ID)!;
+  const signalLayers = layers.filter((l) => l.id !== USER_INPUT_ID);
+
   return (
     <div
       className="w-full flex items-stretch gap-8 min-h-0 px-4 sm:px-6 lg:px-10"
       style={{ height: "calc(100svh - 9rem)" }}
     >
       {/* =================== LEFT: Input Signal + Controls =================== */}
-      <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-2">
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-2 overflow-hidden">
         <div className="text-md lg:text-lg text-fg font-serif font-semibold text-center w-full shrink-0">
           Input Signal x[n]
         </div>
-        <div className="flex-1 min-h-0">
+        {/* Canvas — takes ~55% of column, never shrinks below that */}
+        <div className="shrink-0 min-h-0" style={{ flex: "1 0 55%" }}>
           <StemPlotCanvas
             data={samples}
-            yMin={-1}
-            yMax={1}
+            yMin={-yRange}
+            yMax={yRange}
             xLabel="n"
             yLabel="x[n]"
             interactive
             onDrag={handleDrag}
-            yTicks={[-1, -0.5, 0, 0.5, 1]}
+            yTicks={inputYTicks}
             baselineY={0}
+            xOffset={xOffset}
           />
         </div>
+
+        {/* Control panel */}
         <div className="shrink-0">
           <SignalControls
             N={N}
             onNChange={handleNChange}
-            period={period}
-            onPeriodChange={setPeriod}
-            onPreset={applyPreset}
+            userInputLayer={userInputLayer}
+            onUserInputChange={updateLayer}
             onUndo={handleUndo}
             onClear={handleClear}
           />
+        </div>
+
+        {/* Signal layer cards — scrollable when many */}
+        <div className="shrink min-h-0 overflow-y-auto flex flex-col gap-1 pr-1">
+          {signalLayers.map((layer) => (
+            <SignalLayerCard
+              key={layer.id}
+              layer={layer}
+              onChange={updateLayer}
+              onRemove={() => removeLayer(layer.id)}
+              maxPeriod={N}
+            />
+          ))}
+
+          {/* Add signal button */}
+          <button
+            type="button"
+            onClick={() => addLayer("sine")}
+            className={[
+              "flex items-center justify-center gap-1.5",
+              "w-full rounded-lg border border-dashed border-border/60",
+              "bg-card/40 hover:bg-fg/5 active:scale-[0.99] transition",
+              "text-xs text-fg/50 hover:text-fg/70 font-medium",
+              "py-1 shrink-0",
+            ].join(" ")}
+          >
+            <Plus size={13} />
+            Add Signal
+          </button>
         </div>
       </div>
 
       {/* =================== CENTER: Transform Arrow =================== */}
       <div className="shrink-0 flex flex-col items-center justify-center">
-        {/* Top spacer matches bottom text height for true vertical centering */}
         <div
           className="max-w-[18rem] text-center text-sm font-serif invisible pointer-events-none select-none"
           aria-hidden
@@ -249,7 +379,7 @@ export default function Axis1DPage() {
           </div>
           <div className="flex-1 min-h-0">
             <StemPlotCanvas
-              data={magnitudes}
+              data={displayMagnitudes}
               yMin={0}
               yMax={magYMax}
               xLabel="k"
@@ -258,6 +388,7 @@ export default function Axis1DPage() {
               yTickFormat={magTickFormat}
               baselineY={0}
               compact
+              xOffset={xOffset}
             />
           </div>
         </div>
@@ -269,7 +400,7 @@ export default function Axis1DPage() {
           </div>
           <div className="flex-1 min-h-0">
             <StemPlotCanvas
-              data={phases}
+              data={displayPhases}
               yMin={-Math.PI}
               yMax={Math.PI}
               xLabel="k"
@@ -278,6 +409,7 @@ export default function Axis1DPage() {
               yTickFormat={formatPi}
               baselineY={0}
               compact
+              xOffset={xOffset}
             />
           </div>
         </div>

@@ -7,7 +7,9 @@ import { CheckboxOption } from "@/components/ui/CheckboxOption";
 import { DropdownSelect } from "@/components/ui/DropdownSelect";
 import { ToggleGroup, ToggleItem } from "@/components/ui/ToggleGroup";
 import { useSettings } from "@/lib/settings/SettingsContext";
+import { useEffectiveColoring } from "@/lib/settings/useEffectiveColoring";
 import type {
+  Axis1DOrigin,
   CenterConvention,
   FFTNormalization,
   MagScale,
@@ -253,6 +255,7 @@ export default function SettingsPage() {
 
   type ColoringMode = "system" | "light" | "dark";
 
+  const effectiveColoring = useEffectiveColoring(settings.coloring);
   const isShifted = settings.shift === ("shifted" as ShiftConvention);
   const shiftResult = isShifted
     ? "Result: Zero frequency is centered in the magnitude display."
@@ -344,28 +347,54 @@ export default function SettingsPage() {
         <SettingRow>
           <SettingSplit>
             <DescriptionStack
-              label="Canvas coordinate origin"
-              description="Affects the crosshair and axis overlay on the drawing canvas."
+              label="Coordinate origins"
+              description="Controls where the origin appears on each visualizer's axes. 1D affects the n = 0 position on the axis page; 2D affects the crosshair and overlay on the drawing canvas."
             />
-            <DropdownSelect
-              value={settings.center}
-              onChange={(v) =>
-                setSettings((s) => ({ ...s, center: v as CenterConvention }))
-              }
-              options={[
-                {
-                  value: "centerPixel",
-                  label: "Bottom-right middle pixel is (0,0)",
-                },
-                {
-                  value: "centerBetween",
-                  label: "Between middle pixels is (0,0)",
-                },
-                { value: "topLeft", label: "Top-left is (0,0)" },
-              ]}
-              className="w-full lg:w-88"
-              selectClassName="h-12 w-full border-border bg-card px-3"
-            />
+            <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+              {/* 1D Axis origin */}
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <span className="text-xs font-semibold text-fg/60">1D Axis</span>
+                <CardToggleGroup
+                  value={settings.axis1DOrigin}
+                  onValueChange={(v) =>
+                    setSettings((s) => ({ ...s, axis1DOrigin: v as Axis1DOrigin }))
+                  }
+                >
+                  {[
+                    <CardToggleItem key="left" value="left">
+                      Left
+                    </CardToggleItem>,
+                    <CardToggleItem key="center" value="center">
+                      Center
+                    </CardToggleItem>,
+                  ]}
+                </CardToggleGroup>
+              </div>
+
+              {/* 2D Canvas origin */}
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <span className="text-xs font-semibold text-fg/60">2D Canvas</span>
+                <DropdownSelect
+                  value={settings.center}
+                  onChange={(v) =>
+                    setSettings((s) => ({ ...s, center: v as CenterConvention }))
+                  }
+                  options={[
+                    {
+                      value: "centerPixel",
+                      label: "Bottom-right middle pixel is (0,0)",
+                    },
+                    {
+                      value: "centerBetween",
+                      label: "Between middle pixels is (0,0)",
+                    },
+                    { value: "topLeft", label: "Top-left is (0,0)" },
+                  ]}
+                  className="w-full"
+                  selectClassName="h-12 w-full border-border bg-card px-3"
+                />
+              </div>
+            </div>
           </SettingSplit>
         </SettingRow>
 
@@ -436,13 +465,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <ThemeModeToggle
-                  value={
-                    useOS
-                      ? settings.coloring === "dark"
-                        ? "dark"
-                        : "light"
-                      : settings.coloring
-                  }
+                  value={useOS ? effectiveColoring : settings.coloring}
                   onValueChange={(v) =>
                     setSettings((s) => ({ ...s, coloring: v as ColoringMode }))
                   }

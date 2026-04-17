@@ -154,7 +154,7 @@ export default function Grid2DPage() {
 
     grid.clear();
     clearSpectra();
-    requestAnimationFrame(() => recompute());
+    if (hasTransformed) requestAnimationFrame(() => recompute());
   }
 
   return (
@@ -290,7 +290,7 @@ export default function Grid2DPage() {
               <PhaseCanvas
                 selectedSize={selectedSize}
                 px={phasePx}
-                background="white"
+                background={phaseEmpty}
                 canvasRef={phaseRef}
                 keyContent={<PhaseKey />}
                 frameInsetPx={SPEC_FRAME_INSET}
