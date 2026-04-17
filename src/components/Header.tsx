@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSettings } from "@/lib/settings/SettingsContext";
 import type {
+  Axis1DOrigin,
   CenterConvention,
   DisplayColoring,
   MagNormalize,
@@ -13,9 +14,12 @@ import type {
 import { ToggleGroup, ToggleItem } from "./ui/ToggleGroup";
 import { CheckboxOption } from "./ui/CheckboxOption";
 import { DropdownSelect } from "./ui/DropdownSelect";
-import { Sun, Moon, ExternalLink, ChevronDown, ArrowRight } from "lucide-react";
+import { Sun, Moon, ExternalLink, ChevronDown } from "lucide-react";
 
-const nav = [{ href: "/draw", label: "2D Draw" }];
+const nav = [
+  { href: "/axis", label: "1D Axis" },
+  { href: "/grid", label: "2D Grid" },
+];
 
 const aboutItems = [
   { href: "/about-transform", label: "Fourier Transform" },
@@ -98,7 +102,9 @@ function AboutDropdown({ onNavigate }: { onNavigate?: () => void }) {
       >
         <span className="relative inline-block">
           {/* Invisible spacer always reserves the full "About..." width */}
-          <span className="invisible select-none" aria-hidden>About...</span>
+          <span className="invisible select-none" aria-hidden>
+            About...
+          </span>
 
           {/* Visible text layer */}
           <span className="absolute inset-0 flex items-center justify-start">
@@ -211,11 +217,14 @@ export default function Header() {
       coloring: settings.coloring,
       center: settings.center,
       magNormalize: settings.magNormalize,
+      axis1DOrigin: settings.axis1DOrigin,
     }),
-    [settings.coloring, settings.center, settings.magNormalize],
+    [settings.coloring, settings.center, settings.magNormalize, settings.axis1DOrigin],
   );
 
   const isSettingsPage = pathname === "/settings";
+  const is1DPage = pathname === "/axis";
+  const isAboutPage = pathname.startsWith("/about");
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur">
@@ -264,33 +273,47 @@ export default function Header() {
               }}
             />
           </nav>
-          {/* Settings dropdown trigger (no outline, underline when on /settings) */}
+          {/* Settings gear — on About pages it's a direct link to /settings;
+               everywhere else it opens the quick-settings dropdown. */}
           <div ref={dropdownRef} className="relative self-stretch flex items-center mr-2">
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={dropdownOpen}
-              onClick={() => setDropdownOpen((v) => !v)}
-              className={[
-                "relative px-1 py-2 text-fg/70 hover:text-fg transition",
-                dropdownOpen ? "text-fg" : "",
-              ].join(" ")}
-              title="Settings"
-            >
-              <span className="inline-flex items-center gap-2">
-                <GearIcon className="h-7 w-7 fill-brand-2 " />
-              </span>
-
-              {/* underline bar (selected when on settings page) */}
-              <span
+            {isAboutPage ? (
+              <Link
+                href="/settings"
                 className={[
-                  "pointer-events-none absolute left-0 right-0 -bottom-1 h-0.5 transition-all duration-300",
-                  isSettingsPage ? "w-full bg-fg" : "w-0 bg-fg/0",
+                  "relative px-1 py-2 text-fg/70 hover:text-fg transition",
                 ].join(" ")}
-              />
-            </button>
+                title="Settings"
+                onClick={() => setDropdownOpen(false)}
+              >
+                <GearIcon className="h-7 w-7 fill-brand-2" />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={dropdownOpen}
+                onClick={() => setDropdownOpen((v) => !v)}
+                className={[
+                  "relative px-1 py-2 text-fg/70 hover:text-fg transition",
+                  dropdownOpen ? "text-fg" : "",
+                ].join(" ")}
+                title="Settings"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <GearIcon className="h-7 w-7 fill-brand-2 " />
+                </span>
 
-            {dropdownOpen && (
+                {/* underline bar (active on /settings) */}
+                <span
+                  className={[
+                    "pointer-events-none absolute left-0 right-0 -bottom-1 h-0.5 transition-all duration-300",
+                    isSettingsPage ? "w-full bg-fg" : "w-0 bg-fg/0",
+                  ].join(" ")}
+                />
+              </button>
+            )}
+
+            {dropdownOpen && !isAboutPage && (
               <div role="menu" className="absolute right-0 top-full mt-6 z-50 w-82">
                 <div
                   className={[
@@ -336,46 +359,91 @@ export default function Header() {
                   </div>
 
                   <div className="grid gap-2">
-                    {/* Canvas Origin */}
-                    <DropdownSelect
-                      label="Canvas Origin"
-                      className="grid gap-1 shadow-sm border border-border/60 rounded-xl bg-card w-full px-3 py-2"
-                      value={quick.center}
-                      onChange={(v) =>
-                        setSettings((s) => ({
-                          ...s,
-                          center: v as CenterConvention,
-                        }))
-                      }
-                      options={[
-                        { value: "centerPixel", label: "Bottom-right center pixel" },
-                        { value: "centerBetween", label: "Between middle pixels" },
-                        { value: "topLeft", label: "Top-left pixel" },
-                      ]}
-                    />
+                    {is1DPage ? (
+                      /* ===== 1D Axis quick settings — mirrors the 2D structure ===== */
+                      <>
+                        {/* n=0 position — same component as 2D Canvas Origin */}
+                        <DropdownSelect
+                          label="n = 0 position"
+                          className="grid gap-1 shadow-sm border border-border/60 rounded-xl bg-card w-full px-3 py-2"
+                          value={quick.axis1DOrigin}
+                          onChange={(v) =>
+                            setSettings((s) => ({
+                              ...s,
+                              axis1DOrigin: v as Axis1DOrigin,
+                            }))
+                          }
+                          options={[
+                            { value: "left", label: "Left (standard)" },
+                            { value: "center", label: "Center (symmetric)" },
+                          ]}
+                        />
 
-                    {/* Mag Normalize */}
-                    <div className="grid gap-1 shadow-sm border border-border/60 rounded-xl bg-card w-full px-3 py-2">
-                      <CheckboxOption
-                        id="magnitude-normalization"
-                        checked={quick.magNormalize === "max"}
-                        onCheckedChange={() => {
-                          const next = quick.magNormalize === "max" ? "none" : "max";
-                          setSettings((s) => ({
-                            ...s,
-                            magNormalize: next as MagNormalize,
-                          }));
-                        }}
-                        label="Normalize DFT magnitude."
-                        selectedPreview="Result: DFT magnitude is normalized to its maximum."
-                        unselectedPreview="Result: DFT magnitude is unnormalized."
-                      />
-                    </div>
+                        {/* Normalize magnitude — identical to 2D */}
+                        <div className="grid gap-1 shadow-sm border border-border/60 rounded-xl bg-card w-full px-3 py-2">
+                          <CheckboxOption
+                            id="magnitude-normalization-1d"
+                            checked={quick.magNormalize === "max"}
+                            onCheckedChange={() => {
+                              const next =
+                                quick.magNormalize === "max" ? "none" : "max";
+                              setSettings((s) => ({
+                                ...s,
+                                magNormalize: next as MagNormalize,
+                              }));
+                            }}
+                            label="Normalize DFT magnitude."
+                            selectedPreview="Result: DFT magnitude is normalized to its maximum."
+                            unselectedPreview="Result: DFT magnitude is unnormalized."
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      /* ===== Default / 2D quick settings ===== */
+                      <>
+                        {/* Canvas Origin */}
+                        <DropdownSelect
+                          label="Canvas Origin"
+                          className="grid gap-1 shadow-sm border border-border/60 rounded-xl bg-card w-full px-3 py-2"
+                          value={quick.center}
+                          onChange={(v) =>
+                            setSettings((s) => ({
+                              ...s,
+                              center: v as CenterConvention,
+                            }))
+                          }
+                          options={[
+                            { value: "centerPixel", label: "Bottom-right center pixel" },
+                            { value: "centerBetween", label: "Between middle pixels" },
+                            { value: "topLeft", label: "Top-left pixel" },
+                          ]}
+                        />
 
+                        {/* Mag Normalize */}
+                        <div className="grid gap-1 shadow-sm border border-border/60 rounded-xl bg-card w-full px-3 py-2">
+                          <CheckboxOption
+                            id="magnitude-normalization"
+                            checked={quick.magNormalize === "max"}
+                            onCheckedChange={() => {
+                              const next = quick.magNormalize === "max" ? "none" : "max";
+                              setSettings((s) => ({
+                                ...s,
+                                magNormalize: next as MagNormalize,
+                              }));
+                            }}
+                            label="Normalize DFT magnitude."
+                            selectedPreview="Result: DFT magnitude is normalized to its maximum."
+                            unselectedPreview="Result: DFT magnitude is unnormalized."
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Theme toggle — always shown */}
                     <div className="pt-1 grid grid-cols-3 gap-2">
                       <ToggleGroup
                         height={34}
-                        className="w-full min-w-0 col-span-2 bg-card shadow-sm "
+                        className="w-full min-w-0 col-span-2 bg-card shadow-sm"
                       >
                         <ToggleItem
                           active={quick.coloring === "light"}
@@ -425,20 +493,27 @@ export default function Header() {
                         className="inline-flex items-center shadow-sm justify-center border border-border/80 rounded bg-brand-2 text-brand-contrast hover:bg-brand active:scale-95 transition select-none px-2"
                         style={{ height: 34 }}
                         onClick={() => {
-                          setSettings((s) => ({
-                            ...s,
-                            coloring: "system",
-                            center: "centerBetween",
-                            magNormalize: "max",
-                          }));
+                          if (is1DPage) {
+                            setSettings((s) => ({
+                              ...s,
+                              coloring: "system",
+                              axis1DOrigin: "left",
+                              magNormalize: "max",
+                            }));
+                          } else {
+                            setSettings((s) => ({
+                              ...s,
+                              coloring: "system",
+                              center: "centerBetween",
+                              magNormalize: "max",
+                            }));
+                          }
                         }}
                         title="Reset quick settings"
                       >
                         Reset
                       </button>
                     </div>
-
-                    <div className="pt-1 grid grid-cols-1"></div>
                   </div>
                 </div>
               </div>

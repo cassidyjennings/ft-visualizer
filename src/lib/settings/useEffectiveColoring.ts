@@ -28,11 +28,6 @@ function getPrefersDark() {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
 }
 
-function getHtmlDarkClass() {
-  if (typeof document === "undefined") return false;
-  return document.documentElement.classList.contains("dark");
-}
-
 export function useEffectiveColoring(themeMode: DisplayColoring) {
   // IMPORTANT: initialize from client reality (not always false)
   const [systemDark, setSystemDark] = useState(getPrefersDark);
@@ -41,6 +36,8 @@ export function useEffectiveColoring(themeMode: DisplayColoring) {
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => setSystemDark(mql.matches);
 
+    // Sync in case the OS preference changed between initial state and effect run
+    setSystemDark(mql.matches);
     mql.addEventListener?.("change", onChange);
     return () => mql.removeEventListener?.("change", onChange);
   }, []);
@@ -48,9 +45,6 @@ export function useEffectiveColoring(themeMode: DisplayColoring) {
   return useMemo(() => {
     if (themeMode === "dark") return "dark";
     if (themeMode === "light") return "light";
-
-    // If you keep the layout script, this is the most stable “system” truth:
-    // it matches what the user actually has applied pre-hydration.
-    return getHtmlDarkClass() ? "dark" : "light";
+    return systemDark ? "dark" : "light";
   }, [themeMode, systemDark]);
 }

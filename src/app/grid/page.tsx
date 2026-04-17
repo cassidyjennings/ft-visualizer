@@ -30,7 +30,7 @@ function canonicalizePixelsForFFT(pixels: Uint8Array, isDark: boolean) {
   return out;
 }
 
-export default function DrawPage() {
+export default function Grid2DPage() {
   const { settings } = useSettings();
   const effectiveTheme = useEffectiveColoring(settings.coloring);
   const isDark = effectiveTheme === "dark";
@@ -102,23 +102,25 @@ export default function DrawPage() {
   });
   const gridOuterSize = drawOuterSize;
 
-  const { isTransforming, transform, recompute, clearSpectra, magStats } = useFftPipeline({
-    selectedSize,
-    isDark,
-    settings: {
-      shift: settings.shift,
-      normalization: settings.normalization,
-      center: settings.center,
-      magScale: settings.magScale,
-      magNormalize: settings.magNormalize,
+  const { isTransforming, transform, recompute, clearSpectra, magStats } = useFftPipeline(
+    {
+      selectedSize,
+      isDark,
+      settings: {
+        shift: settings.shift,
+        normalization: settings.normalization,
+        center: settings.center,
+        magScale: settings.magScale,
+        magNormalize: settings.magNormalize,
+      },
+      gridRef: canvasGridRef,
+      phaseCanvasRef: phaseRef,
+      magCanvasRef: magRef,
+      phaseEmpty,
+      magEmpty,
+      canonicalizePixels: canonicalizePixelsForFFT,
     },
-    gridRef: canvasGridRef,
-    phaseCanvasRef: phaseRef,
-    magCanvasRef: magRef,
-    phaseEmpty,
-    magEmpty,
-    canonicalizePixels: canonicalizePixelsForFFT,
-  });
+  );
 
   useEffect(() => {
     clearSpectra();
@@ -152,7 +154,7 @@ export default function DrawPage() {
 
     grid.clear();
     clearSpectra();
-    requestAnimationFrame(() => recompute());
+    if (hasTransformed) requestAnimationFrame(() => recompute());
   }
 
   return (
@@ -166,7 +168,9 @@ export default function DrawPage() {
           stackMain
             ? ""
             : "lg:grid-cols-[auto_auto_minmax(0,1fr)] lg:grid-rows-[auto_auto] lg:items-start",
-          isLayoutReady ? "visible opacity-100" : "invisible opacity-0 pointer-events-none select-none",
+          isLayoutReady
+            ? "visible opacity-100"
+            : "invisible opacity-0 pointer-events-none select-none",
           "transition-opacity duration-150",
         ].join(" ")}
         aria-hidden={!isLayoutReady}
@@ -286,7 +290,7 @@ export default function DrawPage() {
               <PhaseCanvas
                 selectedSize={selectedSize}
                 px={phasePx}
-                background="white"
+                background={phaseEmpty}
                 canvasRef={phaseRef}
                 keyContent={<PhaseKey />}
                 frameInsetPx={SPEC_FRAME_INSET}
