@@ -1,6 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
+package-lock.json
+node_modules/.cache/
 /node_modules
 /.pnp
 .pnp.*
@@ -19,10 +21,9 @@
 
 # production
 /build
-
-# misc
-.DS_Store
-*.pem
+dist/
+.turbo/
+*.tsbuildinfo
 
 # debug
 npm-debug.log*
@@ -30,7 +31,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# OS files
+Thumbs.db
+.env.local
+.env.*.local
 .env*
 
 # vercel
@@ -39,3 +43,25 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE & Editor files:
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.sublime-project
+.sublime-workspace
+.eslintcache
+
+# misc
+.DS_Store
+*.pem
+
+# Claude Code generated files and sessions
+.claude/
+.claude/settings.local.json
+.claude/conversations/
+.claude/sessions/
+.claude/checkpoints/
+.claude/worktrees/

@@ -380,18 +380,12 @@ export default function SettingsPage() {
                     setSettings((s) => ({ ...s, center: v as CenterConvention }))
                   }
                   options={[
-                    {
-                      value: "centerPixel",
-                      label: "Bottom-right middle pixel is (0,0)",
-                    },
-                    {
-                      value: "centerBetween",
-                      label: "Between middle pixels is (0,0)",
-                    },
-                    { value: "topLeft", label: "Top-left is (0,0)" },
+                    { value: "centerPixel", label: "Center pixel (bottom-right)" },
+                    { value: "centerBetween", label: "Between center pixels" },
+                    { value: "topLeft", label: "Top-left pixel" },
                   ]}
                   className="w-full"
-                  selectClassName="h-12 w-full border-border bg-card px-3"
+                  selectClassName="h-[38px] w-full border-border bg-card px-3"
                 />
               </div>
             </div>
