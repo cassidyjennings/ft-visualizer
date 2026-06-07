@@ -6,6 +6,8 @@ export type SignalLayer = {
   amplitude: number;
   coefficient: number;
   period: number;
+  /** Sample delay / circular shift (0 to period−1). Only applies to periodic types. */
+  phaseShift: number;
 };
 
 export const SIGNAL_TYPE_OPTIONS: { value: SignalType; label: string }[] = [

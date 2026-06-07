@@ -42,6 +42,7 @@ function makeUserInputLayer(): SignalLayer {
     amplitude: 1,
     coefficient: 1,
     period: 8,
+    phaseShift: 0,
   };
 }
 
@@ -52,6 +53,7 @@ function makeDefaultLayer(type: SignalType = "sine", period: number = 8): Signal
     amplitude: 1,
     coefficient: 1,
     period,
+    phaseShift: 0,
   };
 }
 

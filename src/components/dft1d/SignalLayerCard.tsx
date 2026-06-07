@@ -123,7 +123,25 @@ export default function SignalLayerCard({
         disabled: isUserInput,
       })}
 
-      {/* Period slider — hidden for user-input and constant */}
+      {/* Shift + Period sliders — hidden for user-input and constant */}
+      {!isUserInput && layer.type !== "constant" && (
+        <label className="flex items-center gap-1 flex-1 min-w-0">
+          <span className="text-fg/60 text-xs font-medium whitespace-nowrap">Shift</span>
+          <span className="tabular-nums text-xs w-5 text-center shrink-0">
+            {layer.phaseShift ?? 0}
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={Math.max(layer.period - 1, 1)}
+            step={1}
+            value={Math.min(layer.phaseShift ?? 0, layer.period - 1)}
+            onChange={(e) => onChange({ ...layer, phaseShift: Number(e.target.value) })}
+            className="flex-1 min-w-0 cursor-pointer"
+            style={{ height: 16 }}
+          />
+        </label>
+      )}
       {!isUserInput && layer.type !== "constant" && (
         <label className="flex items-center gap-1 flex-1 min-w-0">
           <span className="text-fg/60 text-xs font-medium whitespace-nowrap">Period</span>
@@ -136,7 +154,12 @@ export default function SignalLayerCard({
             max={maxPeriod}
             step={1}
             value={Math.min(layer.period, maxPeriod)}
-            onChange={(e) => onChange({ ...layer, period: Number(e.target.value) })}
+            onChange={(e) => {
+              const newPeriod = Number(e.target.value);
+              // Clamp shift to new period range
+              const clampedShift = Math.min(layer.phaseShift ?? 0, newPeriod - 1);
+              onChange({ ...layer, period: newPeriod, phaseShift: clampedShift });
+            }}
             className="flex-1 min-w-0 cursor-pointer"
             style={{ height: 16 }}
           />

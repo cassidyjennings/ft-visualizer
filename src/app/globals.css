@@ -153,6 +153,12 @@
   }
 }
 
+/* Applied programmatically during theme switches to prevent transition lag */
+.no-transition * {
+  transition: none !important;
+  animation: none !important;
+}
+
 .gray-slider {
   -webkit-appearance: none;
   appearance: none;
