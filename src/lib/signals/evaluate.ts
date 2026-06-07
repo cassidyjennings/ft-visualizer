@@ -22,8 +22,9 @@ export function evaluateLayer(
     return result;
   }
 
+  const delay = layer.phaseShift ?? 0;
   for (let n = 0; n < N; n++) {
-    const angle = (2 * Math.PI * n) / layer.period;
+    const angle = (2 * Math.PI * (n - delay)) / layer.period;
     switch (layer.type) {
       case "sine":
         result[n] = layer.amplitude * Math.sin(angle);
@@ -68,7 +69,8 @@ export function sumOtherLayersAt(
       sum += layer.amplitude;
       continue;
     }
-    const angle = (2 * Math.PI * index) / layer.period;
+    const delay = layer.phaseShift ?? 0;
+    const angle = (2 * Math.PI * (index - delay)) / layer.period;
     switch (layer.type) {
       case "sine":
         sum += layer.amplitude * Math.sin(angle);
