@@ -5,6 +5,7 @@ import type { SignalLayer } from "@/lib/signals/types";
 type SignalControlsProps = {
   N: number;
   onNChange: (n: number) => void;
+  onNChangeStart?: () => void;
   userInputLayer: SignalLayer;
   onUserInputChange: (layer: SignalLayer) => void;
   onUndo?: () => void;
@@ -27,6 +28,7 @@ function btnBase() {
 export default function SignalControls({
   N,
   onNChange,
+  onNChangeStart,
   userInputLayer,
   onUserInputChange,
   onUndo,
@@ -68,6 +70,7 @@ export default function SignalControls({
                 max={64}
                 step={1}
                 value={N}
+                onPointerDown={onNChangeStart}
                 onChange={(e) => onNChange(Number(e.target.value))}
                 className="w-full min-w-0 cursor-pointer"
               />
@@ -79,7 +82,7 @@ export default function SignalControls({
             <span className="font-semibold text-sm flex items-center gap-1.5">
               Actions
             </span>
-            <span className="text-fg/70 text-xs font-medium">User Input History</span>
+            <span className="text-fg/70 text-xs font-medium">Signal History</span>
 
             {/* Undo / Clear */}
             <div className="grid grid-cols-2 gap-2">

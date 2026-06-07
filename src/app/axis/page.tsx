@@ -72,28 +72,36 @@ export default function Axis1DPage() {
     imag: Float32Array;
   } | null>(null);
 
-  // Undo history (tracks userInputData changes)
-  const [history, setHistory] = useState<number[][]>([]);
+  // Undo history — each snapshot captures the full editable state so any
+  // action (stem drag, layer edit, N change, add/remove layer) can be reversed.
+  type AxisSnapshot = { N: number; userInputData: number[]; layers: SignalLayer[] };
+  const [history, setHistory] = useState<AxisSnapshot[]>([]);
+
   const userInputRef = useRef(userInputData);
   userInputRef.current = userInputData;
+  const layersRef = useRef(layers);
+  layersRef.current = layers;
+  const nRef = useRef(N);
+  nRef.current = N;
 
   const pushHistory = useCallback(() => {
-    setHistory((prev) => [...prev.slice(-30), [...userInputRef.current]]);
+    setHistory((prev) => [
+      ...prev.slice(-30),
+      {
+        N: nRef.current,
+        userInputData: [...userInputRef.current],
+        layers: layersRef.current.map((l) => ({ ...l })),
+      },
+    ]);
   }, []);
 
   const handleUndo = useCallback(() => {
     setHistory((prev) => {
       if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      setUserInputData((current) => {
-        // Resize the restored snapshot to match current N so lengths stay in sync
-        if (last.length === current.length) return last;
-        const resized = new Array(current.length).fill(0);
-        for (let i = 0; i < Math.min(last.length, current.length); i++) {
-          resized[i] = last[i];
-        }
-        return resized;
-      });
+      const snap = prev[prev.length - 1];
+      setN(snap.N);
+      setUserInputData(snap.userInputData);
+      setLayers(snap.layers);
       return prev.slice(0, -1);
     });
   }, []);
@@ -190,9 +198,10 @@ export default function Axis1DPage() {
   // Layer management
   const addLayer = useCallback(
     (type: SignalType = "sine") => {
+      pushHistory();
       setLayers((prev) => [...prev, makeDefaultLayer(type, Math.min(8, N))]);
     },
-    [N],
+    [N, pushHistory],
   );
 
   const updateLayer = useCallback((updated: SignalLayer) => {
@@ -202,8 +211,9 @@ export default function Axis1DPage() {
   }, []);
 
   const removeLayer = useCallback((id: string) => {
+    pushHistory();
     setLayers((prev) => prev.filter((l) => l.id !== id));
-  }, []);
+  }, [pushHistory]);
 
   // Compute DFT
   const handleTransform = useCallback(() => {
@@ -313,6 +323,7 @@ export default function Axis1DPage() {
           <SignalControls
             N={N}
             onNChange={handleNChange}
+            onNChangeStart={pushHistory}
             userInputLayer={userInputLayer}
             onUserInputChange={updateLayer}
             onUndo={handleUndo}
@@ -327,6 +338,7 @@ export default function Axis1DPage() {
               key={layer.id}
               layer={layer}
               onChange={updateLayer}
+              onBeforeChange={pushHistory}
               onRemove={() => removeLayer(layer.id)}
               maxPeriod={N}
             />
