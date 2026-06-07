@@ -9,6 +9,7 @@ const CARD_H = 36;
 type SignalLayerCardProps = {
   layer: SignalLayer;
   onChange: (updated: SignalLayer) => void;
+  onBeforeChange?: () => void;
   onRemove?: () => void;
   maxPeriod: number;
 };
@@ -17,6 +18,7 @@ function compactInput({
   label,
   value,
   onChange,
+  onFocus,
   min,
   max,
   step,
@@ -26,6 +28,7 @@ function compactInput({
   label: string;
   value: number;
   onChange: (v: number) => void;
+  onFocus?: () => void;
   min?: number;
   max?: number;
   step?: number;
@@ -42,6 +45,7 @@ function compactInput({
         step={step ?? 0.1}
         value={value}
         disabled={disabled}
+        onFocus={onFocus}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           if (!isNaN(v)) onChange(v);
@@ -60,6 +64,7 @@ function compactInput({
 export default function SignalLayerCard({
   layer,
   onChange,
+  onBeforeChange,
   onRemove,
   maxPeriod,
 }: SignalLayerCardProps) {
@@ -99,6 +104,7 @@ export default function SignalLayerCard({
       ) : (
         <select
           value={layer.type}
+          onMouseDown={onBeforeChange}
           onChange={(e) => onChange({ ...layer, type: e.target.value as SignalType })}
           className={[
             "text-xs font-medium bg-card border border-border/60 rounded",
@@ -119,6 +125,7 @@ export default function SignalLayerCard({
         label: "Amplitude",
         value: layer.amplitude,
         onChange: (v) => onChange({ ...layer, amplitude: v }),
+        onFocus: onBeforeChange,
         step: 0.1,
         disabled: isUserInput,
       })}
@@ -136,6 +143,7 @@ export default function SignalLayerCard({
             max={Math.max(layer.period - 1, 1)}
             step={1}
             value={Math.min(layer.phaseShift ?? 0, layer.period - 1)}
+            onPointerDown={onBeforeChange}
             onChange={(e) => onChange({ ...layer, phaseShift: Number(e.target.value) })}
             className="flex-1 min-w-0 cursor-pointer"
             style={{ height: 16 }}
@@ -154,9 +162,9 @@ export default function SignalLayerCard({
             max={maxPeriod}
             step={1}
             value={Math.min(layer.period, maxPeriod)}
+            onPointerDown={onBeforeChange}
             onChange={(e) => {
               const newPeriod = Number(e.target.value);
-              // Clamp shift to new period range
               const clampedShift = Math.min(layer.phaseShift ?? 0, newPeriod - 1);
               onChange({ ...layer, period: newPeriod, phaseShift: clampedShift });
             }}
